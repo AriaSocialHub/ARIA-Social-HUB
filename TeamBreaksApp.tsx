@@ -8,8 +8,8 @@ import AddPauseModal from './components/team-breaks/AddPauseModal';
 import OperatorPauseCard from './components/team-breaks/OperatorPauseCard';
 import RegulationsSection from './components/team-breaks/RegulationsSection';
 import { formatDateTime, formatTime, calculateEndTime, PAUSE_DURATIONS } from './components/team-breaks/helpers';
-import { getAvatar } from '../../services/avatarRegistry';
-import { useData } from '../../contexts/DataContext';
+import { getAvatar } from './services/avatarRegistry';
+import { useData } from './contexts/DataContext';
 
 
 interface CurrentUser extends UserProfile {
