@@ -1,4 +1,4 @@
-import { head, put } from '@vercel/blob';
+import { head, put, BlobNotFoundError } from '@vercel/blob';
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { OnlineUser, UserProfile } from '../types';
 
@@ -28,11 +28,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             const blobInfo = await head(PRESENCE_BLOB_KEY);
             const response = await fetch(blobInfo.url);
             if(response.ok) {
-               presenceState = await response.json();
+               presenceState = await response.json() as PresenceState;
             }
-        } catch (error: any) {
-            if (!error.message.includes('404')) {
-                console.warn('Could not fetch presence state, starting fresh:', error.message);
+        } catch (error) {
+            // If blob is not found, we gracefully continue with a fresh state.
+            // We log other unexpected errors.
+            if (!(error instanceof BlobNotFoundError)) {
+                console.warn('Could not fetch presence state, starting fresh:', (error as Error).message);
             }
         }
 

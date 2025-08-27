@@ -1,4 +1,4 @@
-import { head, put } from '@vercel/blob';
+import { head, put, BlobNotFoundError } from '@vercel/blob';
 import { AppData } from '../types';
 
 export const DB_BLOB_KEY = 'social-hub-db.json';
@@ -16,13 +16,14 @@ export async function getDb(): Promise<AppData> {
     if (!response.ok) {
         throw new Error(`Failed to fetch database from blob: ${response.statusText}`);
     }
-    const db = await response.json();
+    const db = await response.json() as AppData;
+    // Ensure users object exists for backwards compatibility
     if (!db.users) {
         db.users = {};
     }
-    return db as AppData;
-  } catch (error: any) {
-    if (error && error.message && error.message.includes('404')) {
+    return db;
+  } catch (error) {
+    if (error instanceof BlobNotFoundError) {
       console.log('Database blob not found, creating initial data.');
       const initialData = getInitialData();
       await setDb(initialData);
