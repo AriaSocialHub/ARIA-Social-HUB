@@ -1,9 +1,13 @@
-import { set, keys, mget } from '@vercel/kv';
+import { head, put } from '@vercel/blob';
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { OnlineUser, UserProfile } from '../types';
 
-const PRESENCE_KEY_PREFIX = 'presence:';
-const EXPIRATION_SECONDS = 20; // A user is considered offline after 20 seconds of inactivity
+const PRESENCE_BLOB_KEY = 'presence-state.json';
+const INACTIVE_THRESHOLD_MS = 20 * 1000; // 20 seconds
+
+interface PresenceState {
+    users: Record<string, OnlineUser>; // Keyed by sessionId for easy update
+}
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (req.method !== 'POST') {
@@ -18,31 +22,42 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         }
 
         const now = Date.now();
-        const userKey = `${PRESENCE_KEY_PREFIX}${sessionId}`;
-        
-        const currentUserData: OnlineUser = {
+        let presenceState: PresenceState = { users: {} };
+
+        try {
+            const blobInfo = await head(PRESENCE_BLOB_KEY);
+            const response = await fetch(blobInfo.url);
+            if(response.ok) {
+               presenceState = await response.json();
+            }
+        } catch (error: any) {
+            if (!error.message.includes('404')) {
+                console.warn('Could not fetch presence state, starting fresh:', error.message);
+            }
+        }
+
+        presenceState.users[sessionId] = {
             ...profile,
             accessLevel,
             sessionId,
             lastSeen: now,
         };
 
-        // Set the user's presence with an expiration
-        // FIX: Use destructured `set` function from @vercel/kv
-        await set(userKey, JSON.stringify(currentUserData), { ex: EXPIRATION_SECONDS });
-
-        // Get all active presence keys
-        // FIX: Use destructured `keys` function from @vercel/kv
-        const presenceKeys = await keys(`${PRESENCE_KEY_PREFIX}*`);
-        
-        let onlineUsers: OnlineUser[] = [];
-        if (presenceKeys.length > 0) {
-            // FIX: Use destructured `mget` function from @vercel/kv
-            const userRecords = await mget<OnlineUser[]>(...presenceKeys);
-            onlineUsers = userRecords.filter((user): user is OnlineUser => user !== null);
+        const activeUsers: Record<string, OnlineUser> = {};
+        for (const sid in presenceState.users) {
+            if (now - presenceState.users[sid].lastSeen < INACTIVE_THRESHOLD_MS) {
+                activeUsers[sid] = presenceState.users[sid];
+            }
         }
+        presenceState.users = activeUsers;
 
-        return res.status(200).json(onlineUsers);
+        await put(PRESENCE_BLOB_KEY, JSON.stringify(presenceState), {
+            access: 'public',
+            contentType: 'application/json',
+            addRandomSuffix: false,
+        });
+
+        return res.status(200).json(Object.values(presenceState.users));
 
     } catch (error) {
         console.error('Presence API Error:', error);

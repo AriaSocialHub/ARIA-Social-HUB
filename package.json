@@ -6,7 +6,6 @@
   "dependencies": {
     "@google/genai": "^1.9.0",
     "@vercel/blob": "^0.23.4",
-    "@vercel/kv": "^2.0.0",
     "lucide-react": "^0.400.0",
     "react": "^19.1.0",
     "react-dom": "^19.1.0"

@@ -1,7 +1,7 @@
-import { get, set } from '@vercel/kv';
+import { head, put } from '@vercel/blob';
 import { AppData } from '../types';
 
-export const DB_KEY = 'social-hub-db';
+export const DB_BLOB_KEY = 'social-hub-db.json';
 
 export const getInitialData = (): AppData => ({
   services_data: {},
@@ -10,21 +10,39 @@ export const getInitialData = (): AppData => ({
 });
 
 export async function getDb(): Promise<AppData> {
-  // FIX: Use destructured `get` function from @vercel/kv
-  let db: AppData | null = await get(DB_KEY);
-  if (!db) {
-    db = getInitialData();
-    // FIX: Use destructured `set` function from @vercel/kv
-    await set(DB_KEY, db);
+  try {
+    const blob = await head(DB_BLOB_KEY);
+    const response = await fetch(blob.url);
+    if (!response.ok) {
+        throw new Error(`Failed to fetch database from blob: ${response.statusText}`);
+    }
+    const db = await response.json();
+    if (!db.users) {
+        db.users = {};
+    }
+    return db as AppData;
+  } catch (error: any) {
+    if (error && error.message && error.message.includes('404')) {
+      console.log('Database blob not found, creating initial data.');
+      const initialData = getInitialData();
+      await setDb(initialData);
+      return initialData;
+    }
+    console.error('Error getting DB from blob:', error);
+    throw error;
   }
-  // Ensure users table exists for older DB structures
-  if (!db.users) {
-      db.users = {};
-  }
-  return db;
 }
 
 export async function setDb(data: AppData) {
-  // FIX: Use destructured `set` function from @vercel/kv
-  return set(DB_KEY, data);
+  try {
+    const dataString = JSON.stringify(data);
+    await put(DB_BLOB_KEY, dataString, {
+      access: 'public',
+      contentType: 'application/json',
+      addRandomSuffix: false, 
+    });
+  } catch (error) {
+    console.error('Error setting DB in blob:', error);
+    throw error;
+  }
 }
