@@ -1,4 +1,3 @@
-// FIX: Import 'set', 'keys', and 'mget' functions directly from '@vercel/kv'.
 import { set, keys, mget } from '@vercel/kv';
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { OnlineUser, UserProfile } from '../types';
@@ -29,16 +28,16 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         };
 
         // Set the user's presence with an expiration
-        // FIX: Call the imported 'set' function directly.
+        // FIX: Use destructured `set` function from @vercel/kv
         await set(userKey, JSON.stringify(currentUserData), { ex: EXPIRATION_SECONDS });
 
         // Get all active presence keys
-        // FIX: Call the imported 'keys' function directly and rename the result variable to avoid shadowing.
+        // FIX: Use destructured `keys` function from @vercel/kv
         const presenceKeys = await keys(`${PRESENCE_KEY_PREFIX}*`);
         
         let onlineUsers: OnlineUser[] = [];
         if (presenceKeys.length > 0) {
-            // FIX: Call the imported 'mget' function directly and use the renamed 'presenceKeys' variable.
+            // FIX: Use destructured `mget` function from @vercel/kv
             const userRecords = await mget<OnlineUser[]>(...presenceKeys);
             onlineUsers = userRecords.filter((user): user is OnlineUser => user !== null);
         }

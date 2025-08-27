@@ -10,11 +10,11 @@ export const getInitialData = (): AppData => ({
 });
 
 export async function getDb(): Promise<AppData> {
-  // FIX: Call the imported 'get' function directly.
+  // FIX: Use destructured `get` function from @vercel/kv
   let db: AppData | null = await get(DB_KEY);
   if (!db) {
     db = getInitialData();
-    // FIX: Call the imported 'set' function directly.
+    // FIX: Use destructured `set` function from @vercel/kv
     await set(DB_KEY, db);
   }
   // Ensure users table exists for older DB structures
@@ -25,6 +25,6 @@ export async function getDb(): Promise<AppData> {
 }
 
 export async function setDb(data: AppData) {
-  // FIX: Call the imported 'set' function directly.
+  // FIX: Use destructured `set` function from @vercel/kv
   return set(DB_KEY, data);
 }
