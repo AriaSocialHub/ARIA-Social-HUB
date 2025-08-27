@@ -37,18 +37,16 @@ export const getInitialData = (): AppData => {
 };
 
 export async function getDb(): Promise<AppData> {
+  let db: AppData;
+  let dbNeedsUpdate = false;
+
   try {
     const blob = await head(DB_BLOB_KEY);
     const response = await fetch(blob.url);
     if (!response.ok) {
         throw new Error(`Failed to fetch database from blob: ${response.statusText}`);
     }
-    const db = await response.json() as AppData;
-    // Ensure users object exists for backwards compatibility
-    if (!db.users) {
-        db.users = {};
-    }
-    return db;
+    db = await response.json() as AppData;
   } catch (error) {
     if (error instanceof BlobNotFoundError) {
       console.log('Database blob not found, creating initial data.');
@@ -59,7 +57,53 @@ export async function getDb(): Promise<AppData> {
     console.error('Error getting DB from blob:', error);
     throw error;
   }
+
+  // --- Start of Migration/Hydration Logic ---
+  // This ensures that any existing DB is brought up-to-date with the current user schema.
+  if (!db.users) {
+    db.users = {};
+    dbNeedsUpdate = true;
+  }
+
+  const defaultPassword = 'password123';
+
+  const allDefinedUsers = [
+    ...ADMIN_USERS.map(name => ({ name, accessLevel: 'admin' as const })),
+    ...MODERATOR_USERS.map(name => ({ name, accessLevel: 'view' as const })),
+  ];
+
+  for (const definedUser of allDefinedUsers) {
+    const userKey = definedUser.name.toLowerCase();
+    const existingUser = db.users[userKey];
+
+    if (!existingUser) {
+      // User is defined in the code but not in the DB, add them.
+      db.users[userKey] = {
+        name: definedUser.name,
+        avatar: '',
+        accessLevel: definedUser.accessLevel,
+        password: defaultPassword,
+        forcePasswordChange: true,
+      };
+      dbNeedsUpdate = true;
+    } else if (!existingUser.password) {
+      // User exists in DB but is missing the password field. This fixes the login issue.
+      existingUser.password = defaultPassword;
+      existingUser.forcePasswordChange = true;
+      dbNeedsUpdate = true;
+    }
+  }
+  
+  // --- End of Migration/Hydration Logic ---
+  
+  if (dbNeedsUpdate) {
+      console.log('DB schema outdated or incomplete. Hydrating with default user data and re-saving.');
+      await setDb(db);
+  }
+
+  return db;
 }
+
 
 export async function setDb(data: AppData) {
   try {
