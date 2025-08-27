@@ -1,5 +1,6 @@
 
 
+
 import React, { createContext, useContext, useState, useCallback, ReactNode, useEffect } from 'react';
 import { AppData, NotificationItem, StoredFile } from '../types';
 import api from '../services/apiService';
@@ -48,7 +49,8 @@ const getNextColor = () => {
 };
 
 export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-    const [appData, setAppData] = useState<AppData>({ services_data: {}, notifications: [] });
+    // FIX: Initialize the 'users' property in the AppData state to match the type definition.
+    const [appData, setAppData] = useState<AppData>({ services_data: {}, notifications: [], users: {} });
     const [isLoading, setIsLoading] = useState(true);
 
     useEffect(() => {

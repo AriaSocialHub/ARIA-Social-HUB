@@ -1,4 +1,4 @@
-import { kv } from '@vercel/kv';
+import { get, set } from '@vercel/kv';
 import { AppData } from '../types';
 
 export const DB_KEY = 'social-hub-db';
@@ -6,17 +6,25 @@ export const DB_KEY = 'social-hub-db';
 export const getInitialData = (): AppData => ({
   services_data: {},
   notifications: [],
+  users: {},
 });
 
 export async function getDb(): Promise<AppData> {
-  let db: AppData | null = await kv.get(DB_KEY);
+  // FIX: Call the imported 'get' function directly.
+  let db: AppData | null = await get(DB_KEY);
   if (!db) {
     db = getInitialData();
-    await kv.set(DB_KEY, db);
+    // FIX: Call the imported 'set' function directly.
+    await set(DB_KEY, db);
+  }
+  // Ensure users table exists for older DB structures
+  if (!db.users) {
+      db.users = {};
   }
   return db;
 }
 
 export async function setDb(data: AppData) {
-  return kv.set(DB_KEY, data);
+  // FIX: Call the imported 'set' function directly.
+  return set(DB_KEY, data);
 }

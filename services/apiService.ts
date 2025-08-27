@@ -1,4 +1,4 @@
-import { AppData } from '../types';
+import { AppData, User, OnlineUser, UserProfile } from '../types';
 
 /**
  * Fetches the entire application database from the backend.
@@ -51,11 +51,45 @@ async function uploadFile(file: File | Blob, filename: string): Promise<string> 
     return newBlob.url;
 }
 
+// --- User Management ---
+async function fetchAllUsers(): Promise<Record<string, User>> {
+    const response = await fetch('/api/users');
+    if (!response.ok) throw new Error("Failed to fetch users.");
+    return response.json();
+}
+
+async function addUser(user: User): Promise<Record<string, User>> {
+    const response = await fetch('/api/users', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(user),
+    });
+    if (!response.ok) throw new Error("Failed to add user.");
+    return response.json();
+}
+
+// --- Presence Management ---
+async function updatePresence(profile: UserProfile, accessLevel: 'admin' | 'view', sessionId: string): Promise<OnlineUser[]> {
+    const response = await fetch('/api/presence', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ profile, accessLevel, sessionId }),
+    });
+    if (!response.ok) {
+        console.error("Failed to update presence");
+        return [];
+    }
+    return response.json();
+}
+
 
 const api = {
   fetchAllServicesData,
   saveData,
   uploadFile,
+  fetchAllUsers,
+  addUser,
+  updatePresence
 };
 
 export default api;

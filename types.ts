@@ -117,8 +117,14 @@ export interface UserProfile {
 export interface OnlineUser extends UserProfile {
   accessLevel: 'admin' | 'view';
   sessionId: string;
-  lastSeen: number;
+  lastSeen: number; // Stored as timestamp
 }
+
+// User as stored in the persistent DB
+export interface User extends UserProfile {
+  accessLevel: 'admin' | 'view';
+}
+
 
 export interface NewsArticle {
   id: string;
@@ -217,4 +223,5 @@ interface ServiceData {
 export interface AppData {
     services_data: Record<string, ServiceData>;
     notifications: NotificationItem[];
+    users: Record<string, User>; // Central user database
 }

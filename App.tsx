@@ -39,6 +39,24 @@ const App: React.FC = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [mobileSubMenu, setMobileSubMenu] = useState<string | null>(null);
 
+  // --- Login Persistence ---
+  useEffect(() => {
+    try {
+      const storedProfile = localStorage.getItem('socialHub_userProfile');
+      const storedAccessLevel = localStorage.getItem('socialHub_accessLevel') as AccessLevel;
+      if (storedProfile && storedAccessLevel) {
+        const parsedProfile: UserProfile = JSON.parse(storedProfile);
+        setUserProfile(parsedProfile);
+        setAccessLevel(storedAccessLevel);
+        setLoggedInUsername(parsedProfile.name); // Ensure username is set to skip login screen
+      }
+    } catch (error) {
+      console.error("Failed to parse stored user data:", error);
+      localStorage.removeItem('socialHub_userProfile');
+      localStorage.removeItem('socialHub_accessLevel');
+    }
+  }, []);
+
   const { onlineUsers, signOutPresence } = useOnlinePresence(userProfile, accessLevel);
   const isReadOnly = accessLevel === 'view' || (accessLevel === 'admin' && isAdminViewing);
 
@@ -70,6 +88,7 @@ const App: React.FC = () => {
   }, [menuRef]);
   
   const handleLogin = (level: 'admin' | 'view', username: string) => {
+    localStorage.setItem('socialHub_accessLevel', level);
     setAccessLevel(level);
     setLoggedInUsername(username);
     setIsAdminViewing(false);
@@ -79,6 +98,7 @@ const App: React.FC = () => {
   };
 
   const handleProfileCreated = (profile: UserProfile) => {
+    localStorage.setItem('socialHub_userProfile', JSON.stringify(profile));
     setUserProfile(profile);
     setLoggedInUsername(null);
     setView('dashboard');
@@ -86,6 +106,8 @@ const App: React.FC = () => {
 
   const handleLogout = useCallback(() => {
     signOutPresence();
+    localStorage.removeItem('socialHub_userProfile');
+    localStorage.removeItem('socialHub_accessLevel');
     setAccessLevel(null);
     setUserProfile(null);
     setLoggedInUsername(null);
@@ -171,7 +193,6 @@ const App: React.FC = () => {
   if (!userProfile || (loggedInUsername && userProfile.name !== loggedInUsername)) {
     return <AvatarSetup 
              onProfileCreated={handleProfileCreated} 
-             onlineUsers={onlineUsers} 
              username={loggedInUsername || ''}
              accessLevel={accessLevel}
            />;
