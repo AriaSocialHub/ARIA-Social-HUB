@@ -1,6 +1,6 @@
 import React, { useState, useCallback, useRef } from 'react';
 import { UploadCloud, Loader2, Trash2 } from 'lucide-react';
-import api from '../../services/apiService';
+import api from '../services/apiService';
 
 interface ImageUploaderProps {
     currentImageUrl: string | null;
