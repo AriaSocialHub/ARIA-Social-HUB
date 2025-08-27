@@ -1,11 +1,21 @@
 {
   "private": true,
+  "scripts": {
+    "build": "esbuild index.tsx --bundle --outfile=bundle.js --jsx=automatic --loader:.ts=tsx"
+  },
   "dependencies": {
+    "@google/genai": "^1.9.0",
     "@vercel/blob": "^0.23.4",
-    "@vercel/kv": "^2.0.0"
+    "@vercel/kv": "^2.0.0",
+    "lucide-react": "^0.400.0",
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0"
   },
   "devDependencies": {
     "@types/node": "^20.14.9",
+    "@types/react": "^18.3.3",
+    "@types/react-dom": "^18.3.0",
+    "esbuild": "^0.21.4",
     "typescript": "^5.5.2",
     "vercel": "^35.1.0"
   }
