@@ -1,3 +1,4 @@
+
 import { Service } from '../types.ts';
 import { Archive, FileText, ClipboardCheck, CalendarDays, Clock, LayoutGrid, TrendingUp, Users, FilePenLine, BookMarked, Database, HeartPulse, Rss, Bird, Telescope } from 'lucide-react';
 
@@ -21,6 +22,8 @@ import ShiftsApp from '../ShiftsApp.tsx';
 import ManualTicketApp from '../ManualTicketApp.tsx';
 import NewsArchiveApp from '../NewsArchiveApp.tsx';
 import RepositoryApp from '../RepositoryApp.tsx';
+import UserManagementApp from '../UserManagementApp.tsx';
+
 
 // Detail Views
 import CategoryDetailView from '../components/CategoryDetailView.tsx';
@@ -188,6 +191,14 @@ export const services: Service<any>[] = [
     icon: Users,
     description: 'Visualizza e gestisci i turni del team di secondo livello.',
     appComponent: ShiftsApp,
+    category: 'utility',
+  },
+  {
+    id: 'userManagement',
+    name: 'Gestione Utenze',
+    icon: Users,
+    description: "Gestisci gli account utente dell'applicazione.",
+    appComponent: UserManagementApp,
     category: 'utility',
   },
 ];

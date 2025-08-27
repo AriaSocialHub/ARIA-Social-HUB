@@ -1,9 +1,10 @@
+
 import { AppData, User, OnlineUser, UserProfile } from '../types';
 
 /**
  * Fetches the entire application database from the backend.
  */
-async function fetchAllServicesData(): Promise<AppData> {
+async function fetchAllData(): Promise<AppData> {
   const response = await fetch('/api/data');
   if (!response.ok) {
     const errorText = await response.text();
@@ -58,13 +59,21 @@ async function fetchAllUsers(): Promise<Record<string, User>> {
     return response.json();
 }
 
-async function addUser(user: User): Promise<Record<string, User>> {
+async function updateUser(user: User): Promise<Record<string, User>> {
     const response = await fetch('/api/users', {
-        method: 'POST',
+        method: 'POST', // Using POST as an upsert
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(user),
     });
-    if (!response.ok) throw new Error("Failed to add user.");
+    if (!response.ok) throw new Error("Failed to update user.");
+    return response.json();
+}
+
+async function deleteUser(username: string): Promise<Record<string, User>> {
+    const response = await fetch(`/api/users?username=${encodeURIComponent(username)}`, {
+        method: 'DELETE',
+    });
+    if (!response.ok) throw new Error("Failed to delete user.");
     return response.json();
 }
 
@@ -84,11 +93,12 @@ async function updatePresence(profile: UserProfile, accessLevel: 'admin' | 'view
 
 
 const api = {
-  fetchAllServicesData,
+  fetchAllData,
   saveData,
   uploadFile,
   fetchAllUsers,
-  addUser,
+  updateUser,
+  deleteUser,
   updatePresence
 };
 

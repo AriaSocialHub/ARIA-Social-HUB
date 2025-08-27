@@ -1,11 +1,7 @@
 
 
-
-
-
-
 import React, { useState, useMemo, useEffect } from 'react';
-import { StoredFile, UserProfile } from './types';
+import { StoredFile, User } from './types';
 import { useData } from './contexts/DataContext';
 import { Search, Plus, Loader2, Database, AlertTriangle, Trash2, X } from 'lucide-react';
 import FileUploadModal from './components/repository/FileUploadModal';
@@ -23,10 +19,16 @@ const TAB_LABELS: { [key: string]: string } = {
 };
 
 
-const RepositoryApp: React.FC<{ serviceId: string; isReadOnly: boolean; currentUser: UserProfile | null }> = ({ serviceId, isReadOnly, currentUser }) => {
+const RepositoryApp: React.FC<{ serviceId: string; isReadOnly: boolean; currentUser: User | null }> = ({ serviceId, isReadOnly, currentUser }) => {
     const { servicesData, onAddFile, onDeleteFile } = useData();
-    // FIX: Access files from the main (empty string) category for consistency with data context logic.
-    const allFiles: StoredFile[] = useMemo(() => (servicesData[serviceId]?.data?.[''] || []).sort((a: StoredFile,b: StoredFile) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()), [servicesData, serviceId]);
+    const allFiles: StoredFile[] = useMemo(() => {
+        const data = servicesData[serviceId]?.data;
+        if (Array.isArray(data)) { // Handle flat array structure for repository
+            return [...data].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+        }
+        return [];
+    }, [servicesData, serviceId]);
+    
 
     const [isUploadModalOpen, setUploadModalOpen] = useState(false);
     const [fileToDelete, setFileToDelete] = useState<StoredFile | null>(null);

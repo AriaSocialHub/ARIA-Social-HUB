@@ -1,7 +1,7 @@
 
 
 import React from 'react';
-import { UserProfile, OnlineUser, Ticket, Procedura, Guideline, NotificationItem, NavigationTarget, NewsArticle, UsefulContent, StoredFile } from './types';
+import { UserProfile, OnlineUser, Ticket, Procedura, Guideline, NotificationItem, NavigationTarget, NewsArticle, UsefulContent, StoredFile, User } from './types';
 import NewsSection from './components/NewsSection';
 import InfoWidgets from './components/InfoWidgets';
 import { useData } from './contexts/DataContext';
@@ -11,7 +11,7 @@ import { robustParseDate } from './services/utils';
 
 interface DashboardAppProps {
     isReadOnly: boolean;
-    currentUser: UserProfile | null;
+    currentUser: User | null;
     onlineUsers: OnlineUser[];
     setView: (view: string) => void;
     handleNavigate: (targetOrNotification: NavigationTarget | NotificationItem) => void;
@@ -156,7 +156,7 @@ const DashboardApp: React.FC<DashboardAppProps> = ({
                         currentUser={currentUser}
                         handleNavigate={handleNavigate}
                     />
-                     {isReadOnly && notifications.length > 0 && (
+                     {notifications.some(n => n.author !== currentUser?.name) && (
                         <NotificationsList 
                             notifications={notifications}
                             currentUser={currentUser}

@@ -1,66 +1,45 @@
+
 import React, { useState, useMemo, useEffect } from 'react';
-import { UserProfile, OnlineUser, User } from '../types';
+import { User } from '../types';
 import { avatarList, getAvatar, getAvatarColor } from '../services/avatarRegistry';
 import { XCircle, Loader2 } from 'lucide-react';
-import api from '../services/apiService';
+import { useData } from '../contexts/DataContext';
 
 interface AvatarSetupProps {
-  onProfileCreated: (profile: UserProfile) => void;
-  username: string;
-  accessLevel: 'admin' | 'view';
+  onProfileCreated: (user: User) => void;
+  user: User;
 }
 
-const AvatarSetup: React.FC<AvatarSetupProps> = ({ onProfileCreated, username, accessLevel }) => {
-  const [name, setName] = useState(username);
+const AvatarSetup: React.FC<AvatarSetupProps> = ({ onProfileCreated, user }) => {
   const [selectedAvatar, setSelectedAvatar] = useState<string | null>(null);
   const [error, setError] = useState('');
-  const [isLoading, setIsLoading] = useState(true);
-  const [takenAvatars, setTakenAvatars] = useState<Map<string, string>>(new Map());
-
-  useEffect(() => {
-    api.fetchAllUsers().then(users => {
-        const avatarMap = new Map();
-        Object.values(users).forEach(user => {
-            avatarMap.set(user.avatar, user.name);
-        });
-        setTakenAvatars(avatarMap);
-    }).catch(err => {
-        console.error("Failed to fetch users:", err);
-        setError("Impossibile caricare i profili esistenti. Riprova più tardi.");
-    }).finally(() => {
-        setIsLoading(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const { appData, updateUser } = useData();
+  
+  const takenAvatars = useMemo(() => {
+    const avatarMap = new Map<string, string>();
+    Object.values(appData.users).forEach(u => {
+      if (u.avatar && u.name.toLowerCase() !== user.name.toLowerCase()) {
+        avatarMap.set(u.avatar, u.name);
+      }
     });
-  }, []);
+    return avatarMap;
+  }, [appData.users, user.name]);
 
-  useEffect(() => {
-    if (username) {
-      setName(username);
-    }
-  }, [username]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!name.trim()) {
-      setError('Per favore, inserisci il tuo nome.');
-      return;
-    }
     if (!selectedAvatar) {
       setError('Per favore, scegli un avatar.');
       return;
-    }
-    const existingUserWithAvatar = takenAvatars.get(selectedAvatar);
-    if (existingUserWithAvatar && existingUserWithAvatar.toLowerCase() !== name.toLowerCase()) {
-        setError('Questo avatar è già stato scelto. Per favore, scegline un altro.');
-        return;
     }
     setError('');
     setIsLoading(true);
 
     try {
-        const profile: UserProfile = { name: name.trim(), avatar: selectedAvatar };
-        const user: User = { ...profile, accessLevel };
-        await api.addUser(user);
-        onProfileCreated(profile);
+        const updatedUser = { ...user, avatar: selectedAvatar };
+        await updateUser(updatedUser);
+        onProfileCreated(updatedUser);
     } catch (err) {
         console.error(err);
         setError("Salvataggio del profilo fallito. Riprova.");
@@ -73,101 +52,91 @@ const AvatarSetup: React.FC<AvatarSetupProps> = ({ onProfileCreated, username, a
       <div className="w-full max-w-2xl">
         <div className="card p-8">
             <div className="text-center mb-8">
-                <h1 className="text-2xl font-bold" style={{ color: 'var(--c-text-heading)' }}>Crea il tuo Profilo</h1>
-                <p className="text-gray-500 mt-1">Scegli un nome e un avatar per essere riconosciuto dal team.</p>
+                <h1 className="text-2xl font-bold" style={{ color: 'var(--c-text-heading)' }}>Completa il tuo Profilo</h1>
+                <p className="text-gray-500 mt-1">Scegli un avatar per essere riconosciuto dal team.</p>
             </div>
             
-            {isLoading && (
-                 <div className="flex justify-center items-center py-16">
-                    <Loader2 className="w-10 h-10 text-gray-400 animate-spin" />
-                 </div>
-            )}
-
-            {!isLoading && (
-                <form onSubmit={handleSubmit} noValidate>
-                    <div className="space-y-6">
-                        <div>
-                            <label htmlFor="display-name" className="block text-sm font-medium text-gray-700">
-                               Nome Visualizzato
-                            </label>
-                            <div className="mt-1">
-                              <input
-                                  id="display-name"
-                                  type="text"
-                                  required
-                                  value={name}
-                                  onChange={(e) => setName(e.target.value)}
-                                  disabled={accessLevel === 'view'}
-                                  className="form-input disabled:bg-gray-200"
-                                  placeholder="Es. Mario Rossi"
-                              />
-                            </div>
-                        </div>
-
-                        <div>
-                             <label className="block text-sm font-medium text-gray-700 mb-2">
-                               Scegli il tuo Avatar
-                            </label>
-                            <div className="grid grid-cols-6 md:grid-cols-8 lg:grid-cols-9 gap-4">
-                                {avatarList.map((avatarName) => {
-                                    const AvatarIcon = getAvatar(avatarName);
-                                    const isSelected = selectedAvatar === avatarName;
-                                    const isTaken = takenAvatars.has(avatarName) && takenAvatars.get(avatarName)?.toLowerCase() !== name.toLowerCase();
-                                    const takenBy = isTaken ? takenAvatars.get(avatarName) : null;
-                                    
-                                    let iconColor = getAvatarColor(avatarName);
-                                    let buttonClasses = 'p-4 rounded-full flex items-center justify-center transition-all duration-200 aspect-square';
-
-                                    if (isTaken) {
-                                        buttonClasses += ' bg-gray-200 cursor-not-allowed opacity-70';
-                                        iconColor = '#9CA3AF';
-                                    } else if (isSelected) {
-                                        buttonClasses += ' ring-4 ring-[var(--c-primary-light)] transform hover:-translate-y-1 bg-teal-50';
-                                    } else {
-                                        buttonClasses += ' bg-white ring-2 ring-gray-200 hover:bg-gray-50 transform hover:-translate-y-1 hover:ring-[var(--c-primary-light)]';
-                                    }
-
-                                    return (
-                                        <div key={avatarName} className="relative">
-                                            <button
-                                                type="button"
-                                                title={isTaken ? `Scelto da ${takenBy}` : avatarName}
-                                                onClick={() => !isTaken && setSelectedAvatar(avatarName)}
-                                                disabled={isTaken}
-                                                className={buttonClasses}
-                                            >
-                                                <AvatarIcon className="h-10 w-10" style={{ color: iconColor }} />
-                                            </button>
-                                            {isTaken && takenBy && (
-                                                <div className="absolute -bottom-1 -right-1 bg-gray-700 text-white text-[10px] font-bold rounded-full h-5 w-5 flex items-center justify-center border-2 border-white pointer-events-none" title={`Scelto da ${takenBy}`}>
-                                                    {takenBy.charAt(0).toUpperCase()}
-                                                </div>
-                                            )}
-                                        </div>
-                                    );
-                                })}
-                            </div>
-                        </div>
-                        
-                        {error && (
-                            <div className="flex items-center justify-center gap-2 text-sm text-red-600 bg-red-50 p-3 rounded-md border border-red-200">
-                                <XCircle className="h-5 w-5 flex-shrink-0" />
-                                <span>{error}</span>
-                            </div>
-                        )}
-
-                        <div>
-                            <button
-                              type="submit"
-                              className="btn w-full justify-center"
-                              style={{ backgroundColor: 'var(--c-primary-light)', color: 'white' }}
-                            >
-                            Salva e Continua
-                            </button>
+            <form onSubmit={handleSubmit} noValidate>
+                <div className="space-y-6">
+                    <div>
+                        <label htmlFor="display-name" className="block text-sm font-medium text-gray-700">
+                           Nome Visualizzato
+                        </label>
+                        <div className="mt-1">
+                          <input
+                              id="display-name"
+                              type="text"
+                              value={user.name}
+                              disabled
+                              className="form-input disabled:bg-gray-200"
+                          />
                         </div>
                     </div>
-                </form>
-            )}
+
+                    <div>
+                         <label className="block text-sm font-medium text-gray-700 mb-2">
+                           Scegli il tuo Avatar <span className="text-red-500">*</span>
+                        </label>
+                        <div className="grid grid-cols-6 md:grid-cols-8 lg:grid-cols-9 gap-4">
+                            {avatarList.map((avatarName) => {
+                                const AvatarIcon = getAvatar(avatarName);
+                                const isSelected = selectedAvatar === avatarName;
+                                const isTaken = takenAvatars.has(avatarName);
+                                const takenBy = isTaken ? takenAvatars.get(avatarName) : null;
+                                
+                                let iconColor = getAvatarColor(avatarName);
+                                let buttonClasses = 'p-4 rounded-full flex items-center justify-center transition-all duration-200 aspect-square';
+
+                                if (isTaken) {
+                                    buttonClasses += ' bg-gray-200 cursor-not-allowed opacity-70';
+                                    iconColor = '#9CA3AF';
+                                } else if (isSelected) {
+                                    buttonClasses += ' ring-4 ring-[var(--c-primary-light)] transform hover:-translate-y-1 bg-teal-50';
+                                } else {
+                                    buttonClasses += ' bg-white ring-2 ring-gray-200 hover:bg-gray-50 transform hover:-translate-y-1 hover:ring-[var(--c-primary-light)]';
+                                }
+
+                                return (
+                                    <div key={avatarName} className="relative">
+                                        <button
+                                            type="button"
+                                            title={isTaken ? `Scelto da ${takenBy}` : avatarName}
+                                            onClick={() => !isTaken && setSelectedAvatar(avatarName)}
+                                            disabled={isTaken}
+                                            className={buttonClasses}
+                                        >
+                                            <AvatarIcon className="h-10 w-10" style={{ color: iconColor }} />
+                                        </button>
+                                        {isTaken && takenBy && (
+                                            <div className="absolute -bottom-1 -right-1 bg-gray-700 text-white text-[10px] font-bold rounded-full h-5 w-5 flex items-center justify-center border-2 border-white pointer-events-none" title={`Scelto da ${takenBy}`}>
+                                                {takenBy.charAt(0).toUpperCase()}
+                                            </div>
+                                        )}
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    </div>
+                    
+                    {error && (
+                        <div className="flex items-center justify-center gap-2 text-sm text-red-600 bg-red-50 p-3 rounded-md border border-red-200">
+                            <XCircle className="h-5 w-5 flex-shrink-0" />
+                            <span>{error}</span>
+                        </div>
+                    )}
+
+                    <div>
+                        <button
+                          type="submit"
+                          disabled={isLoading}
+                          className="btn w-full justify-center"
+                          style={{ backgroundColor: 'var(--c-primary-light)', color: 'white' }}
+                        >
+                        { isLoading ? <Loader2 className="animate-spin" /> : 'Salva e Continua' }
+                        </button>
+                    </div>
+                </div>
+            </form>
           </div>
       </div>
     </div>

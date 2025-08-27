@@ -1,13 +1,40 @@
+
 import { head, put, BlobNotFoundError } from '@vercel/blob';
-import { AppData } from '../types';
+import { AppData, User } from '../types';
+import { ADMIN_USERS, MODERATOR_USERS } from '../services/userData';
 
 export const DB_BLOB_KEY = 'social-hub-db.json';
 
-export const getInitialData = (): AppData => ({
-  services_data: {},
-  notifications: [],
-  users: {},
-});
+export const getInitialData = (): AppData => {
+  const users: Record<string, User> = {};
+  const defaultPassword = 'password123';
+
+  ADMIN_USERS.forEach(name => {
+    users[name.toLowerCase()] = {
+      name,
+      avatar: '', // To be set on first login
+      accessLevel: 'admin',
+      password: defaultPassword,
+      forcePasswordChange: true,
+    };
+  });
+
+  MODERATOR_USERS.forEach(name => {
+    users[name.toLowerCase()] = {
+      name,
+      avatar: '', // To be set on first login
+      accessLevel: 'view',
+      password: defaultPassword,
+      forcePasswordChange: true,
+    };
+  });
+  
+  return {
+    services_data: {},
+    notifications: [],
+    users,
+  };
+};
 
 export async function getDb(): Promise<AppData> {
   try {

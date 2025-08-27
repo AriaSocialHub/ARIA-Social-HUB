@@ -1,17 +1,20 @@
+
 import React, { useState, useCallback, useEffect, useMemo, useRef } from 'react';
-import { LogOut, Eye, FileUp, ChevronDown, LayoutGrid, Folder, Wrench, Bell, Menu, X, Bot, Database } from 'lucide-react';
+import { LogOut, Eye, FileUp, ChevronDown, LayoutGrid, Folder, Wrench, Bell, Menu, X, Bot, Users as UsersIcon, Search } from 'lucide-react';
 import UploadApp from './UploadApp';
 import Login from './components/Login';
 import { services, serviceMap } from './services/registry';
-import { UserProfile, OnlineUser, NavigationTarget, NotificationItem, Service } from './types';
+import { User, OnlineUser, NavigationTarget, NotificationItem, Service } from './types';
 import AvatarSetup from './components/AvatarSetup';
 import { useOnlinePresence } from './hooks/useOnlinePresence';
 import { getAvatar } from './services/avatarRegistry';
 import { timeService } from './services/timeSyncService';
 import { useData } from './contexts/DataContext';
+import PasswordChange from './components/PasswordChange';
+import GlobalSearchModal from './components/GlobalSearchModal';
 
 type View = 'upload' | string; // Can be 'upload' or a service ID
-type AccessLevel = 'admin' | 'view' | null;
+type AuthStatus = 'LOGGED_OUT' | 'NEEDS_PASSWORD_CHANGE' | 'NEEDS_AVATAR_SETUP' | 'LOGGED_IN';
 
 const NavItem = React.memo<React.PropsWithChildren<{ onClick: () => void; active?: boolean; className?: string }>>(({ children, onClick, active, className }) => (
     <button onClick={onClick} className={`inline-flex items-center gap-2 px-3 py-2 rounded-md text-sm font-semibold transition-colors ${active ? 'bg-white/20' : 'hover:bg-white/10'} ${className || ''}`}>
@@ -26,52 +29,54 @@ const MenuItem = React.memo<React.PropsWithChildren<{ onClick: () => void, style
 ));
 
 const App: React.FC = () => {
-  const [accessLevel, setAccessLevel] = useState<AccessLevel>(null);
-  const [loggedInUsername, setLoggedInUsername] = useState<string | null>(null);
-  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [authStatus, setAuthStatus] = useState<AuthStatus>('LOGGED_OUT');
   const [isAdminViewing, setIsAdminViewing] = useState(false);
   const [view, setView] = useState<View>('dashboard');
   const [uploadServiceContext, setUploadServiceContext] = useState<string | null>(null);
   const [openMenu, setOpenMenu] = useState<string | null>(null);
   const menuRef = useRef<HTMLDivElement>(null);
-  const { notifications, markNotificationRead, markAllNotificationsRead } = useData();
+  const { notifications, markNotificationRead, markAllNotificationsRead, isLoading: isDataLoading } = useData();
   const [navigationTarget, setNavigationTarget] = useState<NavigationTarget | null>(null);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [mobileSubMenu, setMobileSubMenu] = useState<string | null>(null);
 
   // --- Login Persistence ---
   useEffect(() => {
+    if (isDataLoading) return;
     try {
-      const storedProfile = localStorage.getItem('socialHub_userProfile');
-      const storedAccessLevel = localStorage.getItem('socialHub_accessLevel') as AccessLevel;
-      if (storedProfile && storedAccessLevel) {
-        const parsedProfile: UserProfile = JSON.parse(storedProfile);
-        setUserProfile(parsedProfile);
-        setAccessLevel(storedAccessLevel);
-        setLoggedInUsername(parsedProfile.name); // Ensure username is set to skip login screen
+      const storedUser = localStorage.getItem('socialHub_currentUser');
+      if (storedUser) {
+        const user: User = JSON.parse(storedUser);
+        if (user.forcePasswordChange) {
+          setAuthStatus('NEEDS_PASSWORD_CHANGE');
+        } else if (!user.avatar) {
+          setAuthStatus('NEEDS_AVATAR_SETUP');
+        } else {
+          setAuthStatus('LOGGED_IN');
+        }
+        setCurrentUser(user);
       }
     } catch (error) {
       console.error("Failed to parse stored user data:", error);
-      localStorage.removeItem('socialHub_userProfile');
-      localStorage.removeItem('socialHub_accessLevel');
+      localStorage.removeItem('socialHub_currentUser');
     }
-  }, []);
+  }, [isDataLoading]);
 
-  const { onlineUsers, signOutPresence } = useOnlinePresence(userProfile, accessLevel);
-  const isReadOnly = accessLevel === 'view' || (accessLevel === 'admin' && isAdminViewing);
+  const { onlineUsers, signOutPresence } = useOnlinePresence(currentUser, currentUser?.accessLevel || null);
+  const isReadOnly = currentUser?.accessLevel === 'view' || (currentUser?.accessLevel === 'admin' && isAdminViewing);
 
   const documentServices = useMemo(() => services.filter(s => s.category === 'document'), []);
   const utilityServices = useMemo(() => services.filter(s => s.category === 'utility'), []);
   
-  const UserAvatar = useMemo(() => getAvatar(userProfile?.avatar), [userProfile?.avatar]);
-  const currentUserForBreaks = useMemo(() => (userProfile && accessLevel ? { ...userProfile, accessLevel } : null), [userProfile, accessLevel]);
-
+  const UserAvatar = useMemo(() => getAvatar(currentUser?.avatar), [currentUser?.avatar]);
+  
   const unreadNotificationsCount = useMemo(() => {
-    if (userProfile) { // Check for user profile regardless of read-only state
-      return notifications.filter(n => !n.readBy.includes(userProfile.name)).length;
+    if (currentUser) {
+      return notifications.filter(n => !n.readBy.includes(currentUser.name)).length;
     }
     return 0;
-  }, [notifications, userProfile]);
+  }, [notifications, currentUser]);
 
   // Effect to handle clicking outside of open menus
   useEffect(() => {
@@ -87,30 +92,42 @@ const App: React.FC = () => {
     };
   }, [menuRef]);
   
-  const handleLogin = (level: 'admin' | 'view', username: string) => {
-    localStorage.setItem('socialHub_accessLevel', level);
-    setAccessLevel(level);
-    setLoggedInUsername(username);
-    setIsAdminViewing(false);
-    if (userProfile && userProfile.name === username) {
-        setView('dashboard');
+  const handleLoginSuccess = (user: User) => {
+    localStorage.setItem('socialHub_currentUser', JSON.stringify(user));
+    setCurrentUser(user);
+    if (user.forcePasswordChange) {
+      setAuthStatus('NEEDS_PASSWORD_CHANGE');
+    } else if (!user.avatar) {
+      setAuthStatus('NEEDS_AVATAR_SETUP');
+    } else {
+      setAuthStatus('LOGGED_IN');
+      setView('dashboard');
     }
   };
 
-  const handleProfileCreated = (profile: UserProfile) => {
-    localStorage.setItem('socialHub_userProfile', JSON.stringify(profile));
-    setUserProfile(profile);
-    setLoggedInUsername(null);
+  const handlePasswordChanged = (user: User) => {
+    localStorage.setItem('socialHub_currentUser', JSON.stringify(user));
+    setCurrentUser(user);
+    if (!user.avatar) {
+      setAuthStatus('NEEDS_AVATAR_SETUP');
+    } else {
+      setAuthStatus('LOGGED_IN');
+      setView('dashboard');
+    }
+  };
+
+  const handleProfileCreated = (user: User) => {
+    localStorage.setItem('socialHub_currentUser', JSON.stringify(user));
+    setCurrentUser(user);
+    setAuthStatus('LOGGED_IN');
     setView('dashboard');
   };
 
   const handleLogout = useCallback(() => {
     signOutPresence();
-    localStorage.removeItem('socialHub_userProfile');
-    localStorage.removeItem('socialHub_accessLevel');
-    setAccessLevel(null);
-    setUserProfile(null);
-    setLoggedInUsername(null);
+    localStorage.removeItem('socialHub_currentUser');
+    setCurrentUser(null);
+    setAuthStatus('LOGGED_OUT');
     setIsAdminViewing(false);
     setView('dashboard');
     setOpenMenu(null);
@@ -158,8 +175,8 @@ const App: React.FC = () => {
     let target: NavigationTarget;
     if ('message' in targetOrNotification && 'readBy' in targetOrNotification) {
         const notification = targetOrNotification as NotificationItem;
-        if (userProfile) {
-            markNotificationRead(notification.id, userProfile.name);
+        if (currentUser) {
+            markNotificationRead(notification.id, currentUser.name);
         }
         target = {
             serviceId: notification.serviceId,
@@ -173,29 +190,30 @@ const App: React.FC = () => {
     setNavigationTarget(target);
     setView(target.serviceId);
     window.scrollTo(0,0);
-  }, [userProfile, markNotificationRead]);
+  }, [currentUser, markNotificationRead]);
 
 
   const handleMarkAllReadAndShow = useCallback(() => {
-    if (userProfile) markAllNotificationsRead(userProfile.name);
+    if (currentUser) markAllNotificationsRead(currentUser.name);
     setView('dashboard');
     setOpenMenu(null);
     setTimeout(() => {
         document.getElementById('notifications-feed')?.scrollIntoView({ behavior: 'smooth' });
     }, 100);
-  }, [userProfile, markAllNotificationsRead]);
+  }, [currentUser, markAllNotificationsRead]);
   
 
-  if (!accessLevel) {
-    return <Login onLogin={handleLogin} />;
+  if (authStatus === 'LOGGED_OUT' || isDataLoading) {
+    return <Login onLoginSuccess={handleLoginSuccess} />;
   }
-
-  if (!userProfile || (loggedInUsername && userProfile.name !== loggedInUsername)) {
-    return <AvatarSetup 
-             onProfileCreated={handleProfileCreated} 
-             username={loggedInUsername || ''}
-             accessLevel={accessLevel}
-           />;
+  if (!currentUser) return <Login onLoginSuccess={handleLoginSuccess} />;
+  
+  if (authStatus === 'NEEDS_PASSWORD_CHANGE') {
+    return <PasswordChange user={currentUser} onPasswordChanged={handlePasswordChanged} />;
+  }
+  
+  if (authStatus === 'NEEDS_AVATAR_SETUP') {
+    return <AvatarSetup user={currentUser} onProfileCreated={handleProfileCreated} />;
   }
   
   const currentService = serviceMap[view] as Service<any> & { detailViews?: any, itemNoun?: string, itemNounPlural?: string };
@@ -249,12 +267,9 @@ const App: React.FC = () => {
                         <div className={`menu-panel w-60 ${openMenu === 'utility' ? 'open' : ''}`}>
                             <div className="p-2 space-y-1">
                             {utilityServices.map((service, index) => {
-                                if (service.id === 'commentAnalysis' && isReadOnly) {
-                                    return null;
-                                }
-                                if (service.id === 'newsArchive' && isReadOnly) {
-                                    return null;
-                                }
+                                if (service.id === 'userManagement') return null;
+                                if (service.id === 'commentAnalysis' && isReadOnly) return null;
+                                if (service.id === 'newsArchive' && isReadOnly) return null;
                                 return (
                                     <MenuItem key={service.id} onClick={() => handleViewAndCloseMenu(service.id)} style={{ animationDelay: `${index * 30}ms`}}>
                                         <service.icon className="h-5 w-5 text-gray-500"/>
@@ -269,6 +284,14 @@ const App: React.FC = () => {
 
                 {/* Right Side Actions */}
                 <div className="flex items-center gap-4">
+                     <button
+                        onClick={() => document.dispatchEvent(new CustomEvent('open-contextual-search'))}
+                        className="hidden md:flex items-center gap-2 px-3 py-1.5 rounded-md text-sm bg-white/10 hover:bg-white/20"
+                        title="Cerca (⌘+K)"
+                     >
+                        <Search className="h-4 w-4" />
+                        <span className="text-gray-300">Cerca...</span>
+                    </button>
                     <div className="relative" ref={openMenu === 'settings' ? menuRef : null}>
                         <button onClick={() => handleMenuToggle('settings')} className="h-10 w-10 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center transition">
                            <div className="relative">
@@ -284,18 +307,24 @@ const App: React.FC = () => {
 
                         <div className={`menu-panel w-64 right-0 origin-top-right ${openMenu === 'settings' ? 'open' : ''}`}>
                             <div className="px-4 py-3 border-b border-gray-100">
-                                <div className="font-semibold text-gray-800">{userProfile.name}</div>
-                                <div className="text-sm text-gray-500">{accessLevel === 'admin' ? 'Secondo Livello' : 'Primo Livello'}</div>
+                                <div className="font-semibold text-gray-800">{currentUser.name}</div>
+                                <div className="text-sm text-gray-500">{currentUser.accessLevel === 'admin' ? 'Secondo Livello' : 'Primo Livello'}</div>
                             </div>
                             <div className="p-2 space-y-1">
                                 <MenuItem onClick={() => {handleMarkAllReadAndShow(); setOpenMenu(null);}} className="!flex !justify-between">
                                     <div className="flex items-center gap-3"><Bell className="h-5 w-5 text-gray-500" /> <span>Notifiche</span></div>
                                     {unreadNotificationsCount > 0 && <span className="bg-blue-600 text-white text-xs font-semibold rounded-full px-2 py-0.5">{unreadNotificationsCount}</span>}
                                 </MenuItem>
-                                {accessLevel === 'admin' && (
+                                {currentUser.accessLevel === 'admin' && (
                                     <MenuItem onClick={handleToggleAdminView}>
                                         <Eye className="h-5 w-5 text-gray-500" />
                                         <span>{isAdminViewing ? 'Vista Secondo Livello' : 'Vista Primo Livello'}</span>
+                                    </MenuItem>
+                                )}
+                                {currentUser.accessLevel === 'admin' && (
+                                    <MenuItem onClick={() => handleViewAndCloseMenu('userManagement')}>
+                                        <UsersIcon className="h-5 w-5 text-gray-500" />
+                                        <span>Gestione Utenze</span>
                                     </MenuItem>
                                 )}
                                 {!isReadOnly && (
@@ -382,6 +411,7 @@ const App: React.FC = () => {
                                     {mobileSubMenu === 'utility' && (
                                         <div className="pl-8 pt-1 pb-1 space-y-1">
                                             {utilityServices.map(service => {
+                                                if (service.id === 'userManagement') return null;
                                                 if (service.id === 'commentAnalysis' && isReadOnly) return null;
                                                 if (service.id === 'newsArchive' && isReadOnly) return null;
                                                 return (
@@ -399,9 +429,17 @@ const App: React.FC = () => {
                     </div>
                     <div className="py-6 px-5 space-y-4 border-t">
                         <div className="space-y-2">
-                            {accessLevel === 'admin' && (
+                             <MenuItem onClick={() => { document.dispatchEvent(new CustomEvent('open-contextual-search')); setIsMobileMenuOpen(false); }}>
+                                <Search className="text-gray-500" /> <span>Cerca...</span>
+                            </MenuItem>
+                            {currentUser.accessLevel === 'admin' && (
                                 <MenuItem onClick={() => { handleToggleAdminView(); setIsMobileMenuOpen(false); }}>
                                     <Eye className="text-gray-500" /> <span>{isAdminViewing ? 'Vista Secondo Livello' : 'Vista Primo Livello'}</span>
+                                </MenuItem>
+                            )}
+                             {currentUser.accessLevel === 'admin' && (
+                                <MenuItem onClick={() => { handleViewAndCloseMenu('userManagement'); setIsMobileMenuOpen(false); }}>
+                                    <UsersIcon className="text-gray-500"/> <span>Gestione Utenze</span>
                                 </MenuItem>
                             )}
                             {!isReadOnly && (
@@ -416,8 +454,8 @@ const App: React.FC = () => {
                          <div className="flex items-center gap-3 border-t pt-4">
                             <UserAvatar className="h-10 w-10 text-gray-700" />
                             <div>
-                                <div className="font-semibold text-gray-800">{userProfile.name}</div>
-                                <div className="text-sm text-gray-500">{accessLevel === 'admin' ? 'Secondo Livello' : 'Primo Livello'}</div>
+                                <div className="font-semibold text-gray-800">{currentUser.name}</div>
+                                <div className="text-sm text-gray-500">{currentUser.accessLevel === 'admin' ? 'Secondo Livello' : 'Primo Livello'}</div>
                             </div>
                         </div>
                     </div>
@@ -425,17 +463,17 @@ const App: React.FC = () => {
             </div>
         )}
       </header>
-
+      <GlobalSearchModal handleNavigate={handleNavigate} />
       <main className="container mx-auto px-4 sm:px-6 lg:px-8 py-8 flex-grow">
-        {view === 'upload' && <UploadApp setView={setView} contextServiceId={uploadServiceContext} currentUser={userProfile} />}
+        {view === 'upload' && <UploadApp setView={setView} contextServiceId={uploadServiceContext} currentUser={currentUser} />}
         {CurrentAppComponent && view !== 'upload' && (
              <CurrentAppComponent
                 isReadOnly={isReadOnly}
                 onUploadClick={() => handleUploadFromService(view)}
-                currentUser={userProfile}
+                currentUser={currentUser}
                 onlineUsers={onlineUsers}
                 setView={setView}
-                currentUserForBreaks={currentUserForBreaks}
+                currentUserForBreaks={currentUser}
                 now={now}
                 handleNavigate={handleNavigate}
                 navigationTarget={navigationTarget}

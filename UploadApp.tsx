@@ -1,20 +1,19 @@
 
 
-
 import React, { useMemo } from 'react';
 import DataUploader from './components/DataUploader';
 import { services, serviceMap } from './services/registry';
 import EmptyStatePlaceholder from './components/EmptyStatePlaceholder';
 import { useData } from './contexts/DataContext';
 import { ArrowLeft } from 'lucide-react';
-import { UserProfile } from './types';
+import { User } from './types';
 
 type View = 'upload' | string;
 
 interface UploadAppProps {
     setView: (view: View) => void;
     contextServiceId?: string | null;
-    currentUser: UserProfile | null;
+    currentUser: User | null;
 }
 
 

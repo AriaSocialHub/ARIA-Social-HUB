@@ -1,14 +1,14 @@
 
 
-
 import React, { createContext, useContext, useState, useCallback, ReactNode, useEffect } from 'react';
-import { AppData, NotificationItem, StoredFile } from '../types';
+import { AppData, NotificationItem, StoredFile, User } from '../types';
 import api from '../services/apiService';
 import { serviceMap } from '../services/registry';
 
 const createDeepCopy = <T,>(data: T): T => JSON.parse(JSON.stringify(data));
 
 interface DataContextType {
+    appData: AppData;
     servicesData: AppData['services_data'];
     notifications: AppData['notifications'];
     isLoading: boolean;
@@ -22,11 +22,12 @@ interface DataContextType {
     onAddItem: (serviceId: string, categoryName: string, item: any, author: string) => Promise<void>;
     onUpdateItem: (serviceId: string, categoryName: string, itemId: string, updatedItem: any, author: string) => Promise<void>;
     onDeleteItem: (serviceId: string, categoryName: string, itemId: string, author: string) => Promise<void>;
-    // FIX: Add 'author' parameter to align with other data-mutating functions and resolve scope issues.
     onAddFile: (serviceId: string, categoryName: string, fileData: Omit<StoredFile, 'id' | 'author' | 'createdAt' | 'url'>, file: File, author: string) => Promise<void>;
     onDeleteFile: (serviceId: string, categoryName: string, fileId: string, author: string) => Promise<void>;
     markNotificationRead: (notificationId: string, username: string) => Promise<void>;
     markAllNotificationsRead: (username: string) => Promise<void>;
+    updateUser: (user: User) => Promise<void>;
+    deleteUser: (username: string) => Promise<void>;
 }
 
 const DataContext = createContext<DataContextType | undefined>(undefined);
@@ -49,16 +50,14 @@ const getNextColor = () => {
 };
 
 export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-    // FIX: Initialize the 'users' property in the AppData state to match the type definition.
     const [appData, setAppData] = useState<AppData>({ services_data: {}, notifications: [], users: {} });
     const [isLoading, setIsLoading] = useState(true);
 
     useEffect(() => {
-        api.fetchAllServicesData().then(data => {
+        api.fetchAllData().then(data => {
             setAppData(data);
         }).catch(err => {
             console.error("Failed to load initial data", err);
-            // You might want to show an error message to the user here
         }).finally(() => {
             setIsLoading(false);
         });
@@ -74,7 +73,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         } catch (error) {
             console.error("Failed to save data, rolling back:", error);
             setAppData(originalData); // Rollback on error
-            // Optionally, inform the user that the action failed
+            throw error; // Re-throw to inform caller
         }
     }, [appData]);
 
@@ -118,7 +117,6 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const uploadAndReplaceData = useCallback(async (serviceId: string, parsedData: Record<string, any[]>, fileName: string, author: string) => {
         await performOptimisticUpdate(currentData => {
             const oldMetadata = currentData.services_data[serviceId]?.metadata || {};
-            // FIX: Relax type definition to allow optional 'type' and 'createdAt' to match global type, preventing assignment errors.
             const newMetadata: Record<string, { icon: string; color: string; type?: 'text' | 'file'; createdAt?: string; }> = {};
             
             for (const categoryName in parsedData) {
@@ -142,11 +140,21 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const saveServiceData = useCallback(async (serviceId: string, newData: any, author: string, action?: 'add' | 'update' | 'delete', title?: string, itemId?: string) => {
         await performOptimisticUpdate(currentData => {
             const currentServiceState = currentData.services_data[serviceId] || { data: null, fileName: null };
-            currentData.services_data[serviceId] = {
-                ...currentServiceState,
-                data: newData,
-                fileName: currentServiceState.fileName || (newData && newData.length > 0 ? 'Dati inseriti manualmente' : null),
-            };
+            
+            if (serviceId === 'repository') {
+                currentData.services_data[serviceId] = {
+                    ...currentServiceState,
+                    data: newData,
+                    fileName: currentServiceState.fileName || 'Dati inseriti manualmente'
+                };
+            } else {
+                 currentData.services_data[serviceId] = {
+                    ...currentServiceState,
+                    data: newData,
+                    fileName: currentServiceState.fileName || (newData && Object.keys(newData).length > 0 ? 'Dati inseriti manualmente' : null),
+                };
+            }
+
             if(action && title) {
                 return addNotification(currentData, author, serviceId, action, title, undefined, itemId);
             }
@@ -221,7 +229,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const onAddItem = useCallback(async (serviceId: string, categoryName: string, item: any, author: string) => {
         await performOptimisticUpdate(d => {
             const items = d.services_data[serviceId]?.data?.[categoryName];
-            if (items) items.unshift(item);
+            if (Array.isArray(items)) items.unshift(item);
             return addNotification(d, author, serviceId, 'add', item.casistica || item.richiesta || 'Nuovo elemento', categoryName, item.id);
         });
     }, [performOptimisticUpdate, addNotification]);
@@ -229,34 +237,34 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const onUpdateItem = useCallback(async (serviceId: string, categoryName: string, itemId: string, updatedItem: any, author: string) => {
         await performOptimisticUpdate(d => {
             const items = d.services_data[serviceId]?.data?.[categoryName];
-            const itemIndex = items?.findIndex((i: any) => i.id === itemId);
+            const itemIndex = Array.isArray(items) ? items.findIndex((i: any) => i.id === itemId) : -1;
             if (items && itemIndex > -1) {
                 items[itemIndex] = { ...items[itemIndex], ...updatedItem };
+                const title = items[itemIndex].casistica || items[itemIndex].richiesta || items[itemIndex].title || 'Elemento';
+                return addNotification(d, author, serviceId, 'update', title, categoryName, itemId);
             }
-            return addNotification(d, author, serviceId, 'update', items[itemIndex].casistica || items[itemIndex].richiesta || 'Elemento', categoryName, itemId);
+            return d;
         });
     }, [performOptimisticUpdate, addNotification]);
 
     const onDeleteItem = useCallback(async (serviceId: string, categoryName: string, itemId: string, author: string) => {
         await performOptimisticUpdate(d => {
             const items = d.services_data[serviceId]?.data?.[categoryName];
-            const itemToDelete = items?.find((i: any) => i.id === itemId);
+            const itemToDelete = Array.isArray(items) ? items.find((i: any) => i.id === itemId) : undefined;
             if (items && itemToDelete) {
                 d.services_data[serviceId].data[categoryName] = items.filter((i: any) => i.id !== itemId);
-                const title = itemToDelete.casistica || itemToDelete.richiesta || 'Elemento';
+                const title = itemToDelete.casistica || itemToDelete.richiesta || itemToDelete.title || 'Elemento';
                 return addNotification(d, author, serviceId, 'delete', title, categoryName, itemId);
             }
             return d;
         });
     }, [performOptimisticUpdate, addNotification]);
 
-    // FIX: Add 'author' parameter and use it instead of the undefined 'currentUser' variable. This resolves reference errors.
     const onAddFile = useCallback(async (serviceId: string, categoryName: string, fileData: Omit<StoredFile, 'id' | 'author' | 'createdAt' | 'url'>, file: File, author: string) => {
         const url = await api.uploadFile(file, file.name);
         await performOptimisticUpdate(d => {
-            if (!d.services_data[serviceId]) d.services_data[serviceId] = { data: null, fileName: null };
-            if (serviceId === 'repository' && !d.services_data[serviceId].data) d.services_data[serviceId].data = [];
-            
+            if (!d.services_data[serviceId]) d.services_data[serviceId] = { data: [], fileName: 'Dati inseriti manualmente' };
+
             const newFile: StoredFile = {
                 ...fileData,
                 id: `repo-file-${Date.now()}`,
@@ -264,21 +272,14 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                 createdAt: new Date().toISOString(),
                 url: url,
             };
+
             if (serviceId === 'repository') {
-                const items = d.services_data[serviceId].data;
-                if (Array.isArray(items)) {
-                    items.unshift(newFile);
+                if (!Array.isArray(d.services_data[serviceId].data)) {
+                    d.services_data[serviceId].data = [];
                 }
+                d.services_data[serviceId].data.unshift(newFile);
             } else {
-                const items = d.services_data[serviceId].data?.[categoryName];
-                if (Array.isArray(items)) {
-                    items.unshift(newFile);
-                } else if (items && Array.isArray(items.files)) { 
-                    items.files.unshift(newFile);
-                } else if (!items) {
-                    console.warn(`Category ${categoryName} not found for service ${serviceId}. File not added.`);
-                    return d;
-                }
+                 // Handle categorized file services if needed in the future
             }
             
             return addNotification(d, author, serviceId, 'add', `file "${newFile.name}"`, categoryName, newFile.id);
@@ -294,15 +295,6 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             if (serviceId === 'repository' && Array.isArray(serviceData.data)) {
                  fileToDelete = serviceData.data.find((f: StoredFile) => f.id === fileId);
                  if (fileToDelete) serviceData.data = serviceData.data.filter((f: StoredFile) => f.id !== fileId);
-            } else {
-                const items = serviceData.data?.[categoryName];
-                if (Array.isArray(items)) { 
-                    fileToDelete = items.find((f: StoredFile) => f.id === fileId);
-                    if (fileToDelete) serviceData.data[categoryName] = items.filter((f: StoredFile) => f.id !== fileId);
-                } else if (items && Array.isArray(items.files)) { 
-                    fileToDelete = items.files.find((f: StoredFile) => f.id === fileId);
-                    if (fileToDelete) items.files = items.files.filter((f: StoredFile) => f.id !== fileId);
-                }
             }
             
             if (fileToDelete) {
@@ -331,7 +323,24 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         });
     }, [performOptimisticUpdate]);
 
+    const updateUser = useCallback(async (user: User) => {
+        await performOptimisticUpdate(d => {
+            const userKey = user.name.toLowerCase();
+            d.users[userKey] = { ...d.users[userKey], ...user };
+            return d;
+        });
+    }, [performOptimisticUpdate]);
+
+    const deleteUser = useCallback(async (username: string) => {
+        await performOptimisticUpdate(d => {
+            const userKey = username.toLowerCase();
+            delete d.users[userKey];
+            return d;
+        });
+    }, [performOptimisticUpdate]);
+
     const value: DataContextType = {
+        appData,
         servicesData: appData.services_data,
         notifications: appData.notifications,
         isLoading,
@@ -349,9 +358,11 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         onDeleteFile,
         markNotificationRead,
         markAllNotificationsRead,
+        updateUser,
+        deleteUser,
     };
 
-    if (isLoading) {
+    if (isLoading && !Object.keys(appData.users).length) {
         return (
             <div className="flex justify-center items-center h-screen bg-gray-50">
                 <div className="text-xl font-semibold text-gray-700">Caricamento Portale...</div>

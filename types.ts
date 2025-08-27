@@ -123,6 +123,8 @@ export interface OnlineUser extends UserProfile {
 // User as stored in the persistent DB
 export interface User extends UserProfile {
   accessLevel: 'admin' | 'view';
+  password?: string;
+  forcePasswordChange?: boolean;
 }
 
 
