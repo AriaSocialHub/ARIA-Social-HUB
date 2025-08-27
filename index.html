@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="it">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Social Hub</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns"></script>
+    <script src="https://cdn.jsdelivr.net/npm/date-fns"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js" integrity="sha512-GsLlZN/3F2ErC5ifS5QtgpiJtWd43JWSuIgh7mbzZ8zBps+dvLusV+eNQATqgA/HdeKFVgA5v3S/cIrLF7QnIg==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons+Round">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+      :root {
+        --c-primary: #04434E; /* Dark Teal for header */
+        --c-primary-light: #2D9C92; /* Lighter Teal for banner/accents */
+        --c-accent: #E88358; /* Coral */
+        --c-accent-dark: #D97348;
+        --c-bg: #F3F4F6; /* Light gray background */
+        --c-surface: #FFFFFF; /* Card background */
+        --c-text-dark: #1F2937; /* Gray 900 */
+        --c-text-light: #6B7280; /* Gray 500 */
+        --c-text-inverse: #FFFFFF;
+        --c-text-heading: #04434E; /* Same as primary for card headings */
+        --c-online: #10B981; /* Green 500 */
+        --c-pause: #F59E0B; /* Amber 500 */
+        --c-border: #E5E7EB; /* Gray 200 */
+        --border-radius: 0.75rem; /* 12px */
+        --shadow: 0 4px 6px -1px rgb(0 0 0 / 0.07), 0 2px 4px -2px rgb(0 0 0 / 0.07);
+        --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+      }
+
+      body {
+        font-family: 'Poppins', sans-serif;
+        background-color: var(--c-bg);
+        color: var(--c-text-dark);
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+      }
+
+      /* Card Style */
+      .card {
+        background-color: var(--c-surface);
+        border-radius: var(--border-radius);
+        box-shadow: var(--shadow);
+        padding: 1.5rem; /* 24px */
+      }
+      
+      /* Button Styles */
+      .btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
+        font-weight: 600;
+        padding: 0.625rem 1.25rem;
+        border-radius: 0.5rem;
+        border: 1px solid transparent;
+        transition: all 0.2s ease-in-out;
+        cursor: pointer;
+      }
+      .btn:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+      }
+      .btn-primary {
+        background-color: var(--c-accent);
+        color: var(--c-text-inverse);
+      }
+      .btn-primary:hover:not(:disabled) {
+        background-color: var(--c-accent-dark);
+        box-shadow: 0 4px 12px rgba(232, 131, 88, 0.3);
+      }
+      .btn-secondary {
+        background-color: var(--c-surface);
+        color: var(--c-text-dark);
+        border-color: var(--c-border);
+      }
+      .btn-secondary:hover:not(:disabled) {
+        background-color: #F9FAFB; /* Gray 50 */
+        border-color: #D1D5DB; /* Gray 300 */
+      }
+
+      /* Form Input Styles */
+      .form-input {
+        display: block;
+        width: 100%;
+        padding: 0.75rem 1rem;
+        border: 1px solid var(--c-border);
+        border-radius: 0.5rem;
+        background-color: #F9FAFB;
+        color: var(--c-text-dark);
+        transition: border-color 0.2s, box-shadow 0.2s;
+      }
+      .form-input:focus {
+        outline: none;
+        border-color: var(--c-primary-light);
+        box-shadow: 0 0 0 3px rgba(45, 156, 146, 0.2);
+      }
+      
+      .menu-panel {
+        position: absolute;
+        margin-top: 0.5rem;
+        background-color: white;
+        border-radius: 0.5rem;
+        border: 1px solid var(--c-border);
+        box-shadow: var(--shadow-lg);
+        z-index: 50;
+        overflow: hidden;
+        transform-origin: top;
+        transform: translateY(-10px) scale(0.95);
+        opacity: 0;
+        visibility: hidden;
+        transition: transform 0.15s ease-out, opacity 0.15s ease-out, visibility 0.15s linear;
+        pointer-events: none;
+      }
+      .menu-panel.open {
+        transform: translateY(0) scale(1);
+        opacity: 1;
+        visibility: visible;
+        pointer-events: auto;
+      }
+
+      /* Custom scrollbar for better aesthetics */
+      ::-webkit-scrollbar {
+        width: 8px;
+        height: 8px;
+      }
+      ::-webkit-scrollbar-track {
+        background: #f1f1f1;
+      }
+      ::-webkit-scrollbar-thumb {
+        background: #ccc;
+        border-radius: 4px;
+      }
+      ::-webkit-scrollbar-thumb:hover {
+        background: #aaa;
+      }
+
+    </style>
+  <script type="importmap">
+{
+  "imports": {
+    "react": "https://esm.sh/react@^19.1.0",
+    "react/": "https://esm.sh/react@^19.1.0/",
+    "react-dom/": "https://esm.sh/react-dom@^19.1.0/",
+    "lucide-react": "https://esm.sh/lucide-react@^0.400.0",
+    "@google/genai": "https://esm.sh/@google/genai@^1.9.0",
+    "@vercel/kv": "https://aistudiocdn.com/@vercel/kv@^3.0.0",
+    "@vercel/node": "https://aistudiocdn.com/@vercel/node@^5.3.15",
+    "@vercel/blob": "https://aistudiocdn.com/@vercel/blob@^1.1.1"
+  }
+}
+</script>
+<link rel="stylesheet" href="/index.css">
+</head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/index.tsx"></script>
+  </body>
+</html>
