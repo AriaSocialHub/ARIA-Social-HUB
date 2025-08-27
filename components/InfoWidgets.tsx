@@ -7,7 +7,7 @@ import { OnlineUser, UserProfile, Ticket, Procedura, Guideline, NewsArticle, Use
 import { getAvatar, getAvatarColor } from '../services/avatarRegistry';
 import { Users, ArrowRight, BookText, Archive, ClipboardCheck, Wifi, PauseCircle, Activity, Newspaper, HeartPulse, Bird, BookMarked, Telescope } from 'lucide-react';
 import { PAUSE_DURATIONS, calculateEndTime } from './team-breaks/helpers';
-import { useData } from './contexts/DataContext';
+import { useData } from '../contexts/DataContext';
 
 const FallbackAvatar: React.FC<{ authorName: string }> = ({ authorName }) => {
     const initial = authorName.charAt(0).toUpperCase();
