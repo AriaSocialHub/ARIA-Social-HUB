@@ -1,3 +1,6 @@
+// FIX: Add reference to node types to resolve Buffer and stream errors.
+/// <reference types="node" />
+
 import { supabaseAdmin } from '../lib/supabaseClient';
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 

@@ -8,11 +8,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.status(200).json(db);
     }
     
-    // The POST method to save the entire DB is now deprecated and removed
-    // in favor of granular API endpoints (e.g., /api/users, /api/service-data).
     res.setHeader('Allow', ['GET']);
     return res.status(405).json({ message: 'Method Not Allowed' });
-
   } catch (error) {
     console.error('API Error:', error);
     const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred';

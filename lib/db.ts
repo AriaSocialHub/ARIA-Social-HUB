@@ -1,126 +1,133 @@
 import { supabaseAdmin } from './supabaseClient';
-import { AppData, User, Service, NotificationItem } from '../types';
-import { services as serviceRegistry } from '../services/registry';
+import { AppData, NotificationItem, StoredFile, User } from '../types';
+import { ADMIN_USERS, MODERATOR_USERS } from '../services/userData';
+import { services } from '../services/registry';
 
-// List of services that use the categorized data model
-const categorizedServices = serviceRegistry.filter(s => s.category === 'document' || s.id === 'repository' || s.id.startsWith('shifts') || s.id.startsWith('teamBreaks'));
-const simpleServices = serviceRegistry.filter(s => !categorizedServices.some(cs => cs.id === s.id) && s.id !== 'dashboard' && s.id !== 'userManagement');
+const SERVICE_TABLE_PREFIX = 'service_data_';
+const USERS_TABLE = 'users';
+const NOTIFICATIONS_TABLE = 'notifications';
 
-// --- READ OPERATIONS ---
+// Extract service IDs that need their own tables.
+const SERVICE_IDS = services
+  .filter(s => s.category === 'document' || s.category === 'utility')
+  .map(s => s.id);
 
-async function fetchUsers(): Promise<Record<string, User>> {
-    const { data, error } = await supabaseAdmin
-        .from('users')
-        .select('name, avatar, access_level, password, force_password_change');
-        
-    if (error) {
-        console.error('Error fetching users:', error);
-        return {};
-    }
-    const usersMap: Record<string, User> = {};
-    data.forEach((u: any) => {
-        usersMap[u.name.toLowerCase()] = {
-            name: u.name,
-            avatar: u.avatar,
-            accessLevel: u.access_level,
-            password: u.password,
-            forcePasswordChange: u.force_password_change,
-        };
-    });
-    return usersMap;
+// --- Individual Table Access Functions ---
+
+export async function getServiceData(serviceId: string): Promise<any> {
+    const tableName = `${SERVICE_TABLE_PREFIX}${serviceId}`;
+    const { data, error } = await supabaseAdmin.from(tableName).select('value').eq('key', 'data').single();
+    if (error && error.code !== 'PGRST116') console.error(`Error fetching ${tableName}:`, error);
+    return data?.value || { data: null, metadata: {}, fileName: null };
 }
 
-async function fetchNotifications(): Promise<NotificationItem[]> {
-    const { data, error } = await supabaseAdmin
-        .from('notifications')
-        .select('*')
-        .order('timestamp', { ascending: false })
-        .limit(100);
-    if (error) {
-        console.error('Error fetching notifications:', error);
-        return [];
-    }
-    return data.map((n: any) => ({
-        id: n.id,
-        message: n.message,
-        timestamp: n.timestamp,
-        serviceId: n.service_id,
-        categoryName: n.category_name,
-        itemId: n.item_id,
-        readBy: n.read_by,
-        author: n.author,
-    }));
+export async function setServiceData(serviceId: string, value: any) {
+    const tableName = `${SERVICE_TABLE_PREFIX}${serviceId}`;
+    const { error } = await supabaseAdmin.from(tableName).upsert({ key: 'data', value });
+    if (error) console.error(`Error setting ${tableName}:`, error);
 }
 
-async function fetchServiceData(service: Service<any>): Promise<[string, any]> {
-    const tableName = `service_${service.id.replace(/-/g, '_')}`;
-    const isCategorized = categorizedServices.some(cs => cs.id === service.id);
-
-    try {
-        if (isCategorized) {
-            const [dataRes, metaRes] = await Promise.all([
-                supabaseAdmin.from(tableName).select('category_name, item_data'),
-                supabaseAdmin.from('service_categories_metadata').select('*').eq('service_id', service.id)
-            ]);
-
-            if (dataRes.error) throw dataRes.error;
-            if (metaRes.error) throw metaRes.error;
-
-            const groupedData = dataRes.data.reduce((acc, row) => {
-                const category = row.category_name || '_default';
-                if (!acc[category]) {
-                    acc[category] = [];
-                }
-                // The item_data field already contains the full item object including its ID.
-                acc[category].push(row.item_data);
-                return acc;
-            }, {} as Record<string, any[]>);
-
-            const metadata = metaRes.data.reduce((acc, row) => {
-                acc[row.category_name] = {
-                    icon: row.icon,
-                    color: row.color,
-                    type: row.type,
-                    createdAt: row.created_at,
-                };
-                return acc;
-            }, {} as Record<string, any>);
-            
-            return [service.id, { data: groupedData, metadata, fileName: null }];
-
-        } else { // Simple services (flat array data)
-            const { data, error } = await supabaseAdmin.from(tableName).select('item_data');
-            if (error) throw error;
-            const flatData = data.map(row => row.item_data);
-            return [service.id, { data: flatData, metadata: {}, fileName: null }];
-        }
-    } catch (error: any) {
-        if (error.code === '42P01') {
-             console.log(`Table for service ${service.id} not found, returning empty data.`);
-             const emptyData = isCategorized ? { data: {}, metadata: {} } : { data: [] };
-             return [service.id, { ...emptyData, fileName: null }];
-        }
-        console.error(`Error fetching data for service ${service.id}:`, error);
-        const emptyData = isCategorized ? { data: {}, metadata: {} } : { data: [] };
-        return [service.id, { ...emptyData, fileName: null }];
-    }
+export async function getUsers(): Promise<Record<string, User>> {
+    const { data, error } = await supabaseAdmin.from(USERS_TABLE).select('value').eq('key', 'all_users').single();
+    if (error && error.code !== 'PGRST116') console.error(`Error fetching users:`, error);
+    return data?.value || {};
 }
 
+export async function setUsers(users: Record<string, User>) {
+    const { error } = await supabaseAdmin.from(USERS_TABLE).upsert({ key: 'all_users', value: users });
+    if (error) console.error(`Error setting users:`, error);
+}
+
+export async function getNotifications(): Promise<NotificationItem[]> {
+    const { data, error } = await supabaseAdmin.from(NOTIFICATIONS_TABLE).select('value').eq('key', 'all_notifications').single();
+    if (error && error.code !== 'PGRST116') console.error(`Error fetching notifications:`, error);
+    return data?.value || [];
+}
+
+export async function setNotifications(notifications: NotificationItem[]) {
+    const { error } = await supabaseAdmin.from(NOTIFICATIONS_TABLE).upsert({ key: 'all_notifications', value: notifications });
+    if (error) console.error(`Error setting notifications:`, error);
+}
+
+
+// --- Utility and Aggregate Functions ---
+
+export async function addNotification(
+    author: string, serviceId: string, action: 'add' | 'update' | 'delete',
+    title: string, categoryName?: string, itemId?: string
+) {
+    const serviceName = services.find(s => s.id === serviceId)?.name || serviceId;
+    let actionText = '';
+    switch(action) { case 'add': actionText = 'aggiunto'; break; case 'update': actionText = 'aggiornato'; break; case 'delete': actionText = 'rimosso'; break; }
+    const message = `${author} ha ${actionText} "${title}" nella sezione ${serviceName}${categoryName ? ` > ${categoryName}`: ''}.`;
+    
+    const newNotification: NotificationItem = {
+        message, timestamp: new Date().toISOString(), serviceId, categoryName, itemId,
+        readBy: [author], author, id: `notif-${Date.now()}-${Math.random()}`,
+    };
+    
+    const notifications = await getNotifications();
+    notifications.unshift(newNotification);
+    if (notifications.length > 100) {
+        notifications.pop();
+    }
+    await setNotifications(notifications);
+}
+
+export const getInitialData = (): AppData => {
+  const users: Record<string, User> = {};
+  const defaultPassword = 'password123';
+
+  ADMIN_USERS.forEach(name => {
+    users[name.toLowerCase()] = { name, avatar: '', accessLevel: 'admin', password: defaultPassword, forcePasswordChange: true };
+  });
+  MODERATOR_USERS.forEach(name => {
+    users[name.toLowerCase()] = { name, avatar: '', accessLevel: 'view', password: defaultPassword, forcePasswordChange: true };
+  });
+  
+  return { services_data: {}, notifications: [], users };
+};
 
 export async function getDb(): Promise<AppData> {
-  const [users, notifications, ...servicesDataArray] = await Promise.all([
-    fetchUsers(),
-    fetchNotifications(),
-    ...serviceRegistry
-        .filter(s => s.id !== 'dashboard' && s.id !== 'userManagement')
-        .map(fetchServiceData),
-  ]);
+    console.log("Aggregating data from all tables for initial load...");
 
-  const services_data: AppData['services_data'] = Object.fromEntries(servicesDataArray);
+    const users = await getUsers();
+    let dbNeedsUpdate = false;
+    
+    // Hydrate users if table is empty or schema is old
+    if (Object.keys(users).length === 0) {
+        console.log('Users table is empty, creating initial user set.');
+        const initialUsers = getInitialData().users;
+        await setUsers(initialUsers);
+        Object.assign(users, initialUsers);
+    } else {
+        // Migration logic for existing deployments
+        const allDefinedUsers = [...ADMIN_USERS.map(name => ({ name, accessLevel: 'admin' as const })), ...MODERATOR_USERS.map(name => ({ name, accessLevel: 'view' as const }))];
+        for (const definedUser of allDefinedUsers) {
+            const userKey = definedUser.name.toLowerCase();
+            if (!users[userKey]) {
+                users[userKey] = { name: definedUser.name, avatar: '', accessLevel: definedUser.accessLevel, password: 'password123', forcePasswordChange: true };
+                dbNeedsUpdate = true;
+            } else if (!users[userKey].password) {
+                users[userKey].password = 'password123';
+                users[userKey].forcePasswordChange = true;
+                dbNeedsUpdate = true;
+            }
+        }
+        if (dbNeedsUpdate) {
+            console.log('User schema updated. Saving changes.');
+            await setUsers(users);
+        }
+    }
 
-  return {
-    users,
-    notifications,
-    services_data,
-  };
+    const notifications = await getNotifications();
+    
+    const servicesDataPromises = SERVICE_IDS.map(id => getServiceData(id).then(data => ({ id, data })));
+    const servicesDataResults = await Promise.all(servicesDataPromises);
+    const services_data: AppData['services_data'] = {};
+    servicesDataResults.forEach(result => {
+        services_data[result.id] = result.data;
+    });
+
+    return { users, notifications, services_data };
 }

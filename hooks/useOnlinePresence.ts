@@ -1,14 +1,12 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-// Fix: `RealtimeChannel` may not be exported from this version of `@supabase/supabase-js`.
-// Using `ReturnType` to infer the channel type for better compatibility.
-import { createClient, SupabaseClient } from '@supabase/supabase-js';
+import { createClient, SupabaseClient, RealtimeChannel } from '@supabase/supabase-js';
 import { OnlineUser, UserProfile } from '../types';
 
 
 export function useOnlinePresence(profile: UserProfile | null, accessLevel: 'admin' | 'view' | null) {
   const [onlineUsers, setOnlineUsers] = useState<OnlineUser[]>([]);
   const [supabase, setSupabase] = useState<SupabaseClient | null>(null);
-  const channelRef = useRef<ReturnType<SupabaseClient['channel']> | null>(null);
+  const channelRef = useRef<RealtimeChannel | null>(null);
 
   // Step 1: Fetch Supabase configuration from our secure API endpoint
   useEffect(() => {
