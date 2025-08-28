@@ -1,9 +1,9 @@
-
-import { head, put, BlobNotFoundError } from '@vercel/blob';
+import { supabaseAdmin } from './supabaseClient';
 import { AppData, User } from '../types';
 import { ADMIN_USERS, MODERATOR_USERS } from '../services/userData';
 
-export const DB_BLOB_KEY = 'social-hub-db.json';
+const DB_TABLE_NAME = 'app_data_store';
+const DB_ROW_KEY = 'main_db';
 
 export const getInitialData = (): AppData => {
   const users: Record<string, User> = {};
@@ -37,29 +37,28 @@ export const getInitialData = (): AppData => {
 };
 
 export async function getDb(): Promise<AppData> {
+  const { data, error } = await supabaseAdmin
+    .from(DB_TABLE_NAME)
+    .select('value')
+    .eq('key', DB_ROW_KEY)
+    .single();
+
   let db: AppData;
+
+  if (error || !data) {
+    if (error && error.code !== 'PGRST116') { // PGRST116: "exact one row not found"
+        console.error('Error fetching DB from Supabase:', error.message);
+    }
+    console.log('Database not found in Supabase, creating initial data.');
+    const initialData = getInitialData();
+    await setDb(initialData);
+    return initialData;
+  }
+  
+  db = data.value as AppData;
   let dbNeedsUpdate = false;
 
-  try {
-    const blob = await head(DB_BLOB_KEY);
-    const response = await fetch(blob.url);
-    if (!response.ok) {
-        throw new Error(`Failed to fetch database from blob: ${response.statusText}`);
-    }
-    db = await response.json() as AppData;
-  } catch (error) {
-    if (error instanceof BlobNotFoundError) {
-      console.log('Database blob not found, creating initial data.');
-      const initialData = getInitialData();
-      await setDb(initialData);
-      return initialData;
-    }
-    console.error('Error getting DB from blob:', error);
-    throw error;
-  }
-
   // --- Start of Migration/Hydration Logic ---
-  // This ensures that any existing DB is brought up-to-date with the current user schema.
   if (!db.users) {
     db.users = {};
     dbNeedsUpdate = true;
@@ -77,7 +76,6 @@ export async function getDb(): Promise<AppData> {
     const existingUser = db.users[userKey];
 
     if (!existingUser) {
-      // User is defined in the code but not in the DB, add them.
       db.users[userKey] = {
         name: definedUser.name,
         avatar: '',
@@ -87,7 +85,6 @@ export async function getDb(): Promise<AppData> {
       };
       dbNeedsUpdate = true;
     } else if (!existingUser.password) {
-      // User exists in DB but is missing the password field. This fixes the login issue.
       existingUser.password = defaultPassword;
       existingUser.forcePasswordChange = true;
       dbNeedsUpdate = true;
@@ -106,15 +103,12 @@ export async function getDb(): Promise<AppData> {
 
 
 export async function setDb(data: AppData) {
-  try {
-    const dataString = JSON.stringify(data);
-    await put(DB_BLOB_KEY, dataString, {
-      access: 'public',
-      contentType: 'application/json',
-      addRandomSuffix: false, 
-    });
-  } catch (error) {
-    console.error('Error setting DB in blob:', error);
+  const { error } = await supabaseAdmin
+    .from(DB_TABLE_NAME)
+    .upsert({ key: DB_ROW_KEY, value: data });
+
+  if (error) {
+    console.error('Error setting DB in Supabase:', error);
     throw error;
   }
 }

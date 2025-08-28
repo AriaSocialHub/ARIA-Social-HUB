@@ -41,6 +41,9 @@ async function saveData(dbState: AppData): Promise<AppData> {
 async function uploadFile(file: File | Blob, filename: string): Promise<string> {
     const response = await fetch(`/api/upload?filename=${encodeURIComponent(filename)}`, {
         method: 'POST',
+        headers: {
+            'Content-Type': file.type
+        },
         body: file,
     });
     if (!response.ok) {
@@ -48,8 +51,8 @@ async function uploadFile(file: File | Blob, filename: string): Promise<string> 
         console.error('File upload failed:', errorText);
         throw new Error("Caricamento del file fallito.");
     }
-    const newBlob = await response.json();
-    return newBlob.url;
+    const result = await response.json();
+    return result.url;
 }
 
 // --- User Management ---
@@ -77,21 +80,6 @@ async function deleteUser(username: string): Promise<Record<string, User>> {
     return response.json();
 }
 
-// --- Presence Management ---
-async function updatePresence(profile: UserProfile, accessLevel: 'admin' | 'view', sessionId: string): Promise<OnlineUser[]> {
-    const response = await fetch('/api/presence', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ profile, accessLevel, sessionId }),
-    });
-    if (!response.ok) {
-        console.error("Failed to update presence");
-        return [];
-    }
-    return response.json();
-}
-
-
 const api = {
   fetchAllData,
   saveData,
@@ -99,7 +87,6 @@ const api = {
   fetchAllUsers,
   updateUser,
   deleteUser,
-  updatePresence
 };
 
 export default api;

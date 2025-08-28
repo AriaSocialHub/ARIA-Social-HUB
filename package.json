@@ -5,7 +5,7 @@
   },
   "dependencies": {
     "@google/genai": "^1.9.0",
-    "@vercel/blob": "^0.23.4",
+    "@supabase/supabase-js": "^2.43.5",
     "lucide-react": "^0.400.0",
     "react": "^19.1.0",
     "react-dom": "^19.1.0"
