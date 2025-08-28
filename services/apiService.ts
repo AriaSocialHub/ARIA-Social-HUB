@@ -1,70 +1,40 @@
+import { AppData, User, OnlineUser, UserProfile, NotificationItem } from '../types';
 
-import { AppData, User, OnlineUser, UserProfile } from '../types';
-
-/**
- * Fetches the entire application database from the backend.
- */
 async function fetchAllData(): Promise<AppData> {
   const response = await fetch('/api/data');
-  if (!response.ok) {
-    const errorText = await response.text();
-    console.error('Failed to fetch data:', errorText);
-    throw new Error('Impossibile caricare i dati dal server.');
-  }
+  if (!response.ok) throw new Error('Impossibile caricare i dati dal server.');
   return response.json();
 }
 
-/**
- * Saves the entire application database to the backend.
- * @param dbState The complete state of the application data.
- */
-async function saveData(dbState: AppData): Promise<AppData> {
-  const response = await fetch('/api/data', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(dbState),
-  });
-  if (!response.ok) {
-    const errorText = await response.text();
-    console.error('Failed to save data:', errorText);
-    throw new Error('Salvataggio dei dati fallito.');
-  }
-  return response.json();
-}
-
-/**
- * Uploads a file to the backend blob storage.
- * @param file The File or Blob object to upload.
- * @param filename The desired name for the file.
- * @returns The public URL of the uploaded file.
- */
 async function uploadFile(file: File | Blob, filename: string): Promise<string> {
     const response = await fetch(`/api/upload?filename=${encodeURIComponent(filename)}`, {
         method: 'POST',
-        headers: {
-            'Content-Type': file.type
-        },
+        headers: { 'Content-Type': file.type },
         body: file,
     });
-    if (!response.ok) {
-        const errorText = await response.text();
-        console.error('File upload failed:', errorText);
-        throw new Error("Caricamento del file fallito.");
-    }
+    if (!response.ok) throw new Error("Caricamento del file fallito.");
     const result = await response.json();
     return result.url;
 }
 
-// --- User Management ---
-async function fetchAllUsers(): Promise<Record<string, User>> {
-    const response = await fetch('/api/users');
-    if (!response.ok) throw new Error("Failed to fetch users.");
-    return response.json();
+// --- Granular API Calls ---
+
+async function postToServiceApi(body: object): Promise<void> {
+    const response = await fetch('/api/service-data', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+    });
+    if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || 'Operazione sui dati fallita.');
+    }
 }
 
-async function updateUser(user: User): Promise<Record<string, User>> {
+// --- User Management ---
+async function updateUser(user: User): Promise<User> {
     const response = await fetch('/api/users', {
-        method: 'POST', // Using POST as an upsert
+        method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(user),
     });
@@ -72,21 +42,70 @@ async function updateUser(user: User): Promise<Record<string, User>> {
     return response.json();
 }
 
-async function deleteUser(username: string): Promise<Record<string, User>> {
+async function deleteUser(username: string): Promise<void> {
     const response = await fetch(`/api/users?username=${encodeURIComponent(username)}`, {
         method: 'DELETE',
     });
     if (!response.ok) throw new Error("Failed to delete user.");
-    return response.json();
 }
 
 const api = {
   fetchAllData,
-  saveData,
   uploadFile,
-  fetchAllUsers,
   updateUser,
   deleteUser,
+
+  // Simple data save (for flat data structures like campaigns, news)
+  saveServiceData: (serviceId: string, newData: any) => postToServiceApi({
+    action: 'saveSimpleData',
+    payload: { serviceId, newData }
+  }),
+  
+  // Category operations
+  addCategory: (serviceId: string, categoryName: string, metadata: any) => postToServiceApi({
+      action: 'addCategory',
+      payload: { serviceId, categoryName, metaUpdate: metadata }
+  }),
+  renameCategory: (serviceId: string, oldName: string, newName: string) => postToServiceApi({
+      action: 'renameCategory',
+      payload: { serviceId, oldName, newName }
+  }),
+  deleteCategory: (serviceId: string, categoryName: string) => postToServiceApi({
+      action: 'deleteCategory',
+      payload: { serviceId, categoryName }
+  }),
+  deleteMultipleCategories: (serviceId: string, categoryNames: string[]) => postToServiceApi({
+      action: 'deleteMultipleCategories',
+      payload: { serviceId, categoryNames }
+  }),
+  updateCategoryMetadata: (serviceId: string, categoryName: string, metaUpdate: any) => postToServiceApi({
+      action: 'updateCategoryMetadata',
+      payload: { serviceId, categoryName, metaUpdate }
+  }),
+  
+  // Item operations
+  addItem: (serviceId: string, categoryName: string, item: any) => postToServiceApi({
+      action: 'addItem',
+      payload: { serviceId, categoryName, item }
+  }),
+  updateItem: (serviceId: string, categoryName: string, itemId: string, updatedItem: any) => postToServiceApi({
+      action: 'updateItem',
+      payload: { serviceId, categoryName, itemId, updatedItem }
+  }),
+  deleteItem: (serviceId: string, categoryName: string, itemId: string) => postToServiceApi({
+      action: 'deleteItem',
+      payload: { serviceId, categoryName, itemId }
+  }),
+  
+  // Notification operations
+  markNotificationRead: (notificationId: string, username: string) => postToServiceApi({
+      action: 'markNotificationRead',
+      payload: { notificationId, username }
+  }),
+  markAllNotificationsRead: (username: string) => postToServiceApi({
+      action: 'markAllNotificationsRead',
+      payload: { username }
+  }),
 };
 
 export default api;
