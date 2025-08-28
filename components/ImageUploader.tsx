@@ -1,5 +1,6 @@
 import React, { useState, useCallback, useRef } from 'react';
 import { UploadCloud, Loader2, Trash2 } from 'lucide-react';
+import api from '../services/apiService';
 
 interface ImageUploaderProps {
     currentImageUrl: string | null;
@@ -7,23 +8,6 @@ interface ImageUploaderProps {
     targetWidth?: number;
     targetHeight?: number;
 }
-
-// FIX: Added helper to call the file upload API endpoint. This function was previously missing.
-async function uploadFile(file: File | Blob, filename: string): Promise<string> {
-    const response = await fetch(`/api/upload?filename=${encodeURIComponent(filename)}`, {
-        method: 'POST',
-        headers: { 'Content-Type': file.type },
-        body: file,
-    });
-    if (!response.ok) {
-        const errorText = await response.text();
-        console.error('File upload failed:', errorText);
-        throw new Error("Caricamento del file fallito.");
-    }
-    const result = await response.json();
-    return result.url;
-}
-
 
 const ImageUploader: React.FC<ImageUploaderProps> = ({
     currentImageUrl,
@@ -71,7 +55,7 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({
                 canvas.toBlob(async (blob) => {
                     if (blob) {
                         try {
-                            const uploadedUrl = await uploadFile(blob, file.name);
+                            const uploadedUrl = await api.uploadFile(blob, file.name);
                             onImageUploaded(uploadedUrl);
                         } catch (error) {
                             console.error(error);

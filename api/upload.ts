@@ -1,12 +1,13 @@
-// FIX: Add reference to node types to resolve Buffer and stream errors.
-/// <reference types="node" />
-
 import { supabaseAdmin } from '../lib/supabaseClient';
 import type { VercelRequest, VercelResponse } from '@vercel/node';
+// FIX: Import Buffer to make the type available to TypeScript in this environment.
+import { Buffer } from 'buffer';
 
 // Helper function to read a readable stream into a buffer.
 // This is necessary because Vercel provides the request body as a stream.
-async function streamToBuffer(readableStream: NodeJS.ReadableStream): Promise<Buffer> {
+// FIX: The type `NodeJS.ReadableStream` was not available.
+// Using `VercelRequest` directly which is a `ReadableStream` and properly typed.
+async function streamToBuffer(readableStream: VercelRequest): Promise<Buffer> {
   return new Promise((resolve, reject) => {
     const chunks: Buffer[] = [];
     readableStream.on('data', (chunk) => {
