@@ -9,7 +9,10 @@ const simpleServices = serviceRegistry.filter(s => !categorizedServices.some(cs 
 // --- READ OPERATIONS ---
 
 async function fetchUsers(): Promise<Record<string, User>> {
-    const { data, error } = await supabaseAdmin.from('users').select('*');
+    const { data, error } = await supabaseAdmin
+        .from('users')
+        .select('name, avatar, access_level, password, force_password_change');
+        
     if (error) {
         console.error('Error fetching users:', error);
         return {};
@@ -68,6 +71,7 @@ async function fetchServiceData(service: Service<any>): Promise<[string, any]> {
                 if (!acc[category]) {
                     acc[category] = [];
                 }
+                // The item_data field already contains the full item object including its ID.
                 acc[category].push(row.item_data);
                 return acc;
             }, {} as Record<string, any[]>);
