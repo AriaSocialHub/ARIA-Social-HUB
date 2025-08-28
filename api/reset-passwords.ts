@@ -8,10 +8,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   try {
-    // 1. Fetch all users just to get their names
+    // 1. Fetch all users with their essential, non-resettable data
     const { data: users, error: fetchError } = await supabaseAdmin
       .from('users')
-      .select('name');
+      .select('name, avatar, access_level');
 
     if (fetchError) {
       throw new Error(`Failed to fetch users: ${fetchError.message}`);
@@ -21,9 +21,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.status(200).send('Nessun utente trovato da resettare.');
     }
 
-    // 2. Prepare the update payload for all users
+    // 2. Prepare the update payload for all users, preserving existing data
     const updates = users.map(user => ({
       name: user.name, // The primary key for the upsert
+      avatar: user.avatar, // Preserve existing avatar
+      access_level: user.access_level, // Preserve existing access level
       password: 'password123',
       force_password_change: true,
     }));
