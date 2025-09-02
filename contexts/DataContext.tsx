@@ -1,3 +1,5 @@
+
+
 import React, { createContext, useContext, useState, useCallback, ReactNode, useEffect } from 'react';
 import { AppData, NotificationItem, StoredFile, User } from '../types';
 import api from '../services/apiService';
@@ -30,8 +32,17 @@ interface DataContextType {
 
 const DataContext = createContext<DataContextType | undefined>(undefined);
 
+const NOTIFICATION_EXCLUSIONS = new Set([
+    'commentAnalysis',
+    'shifts-primo-livello',
+    'shifts-secondo-livello',
+    'manualTickets',
+    'teamBreaks-primo-livello',
+]);
+
 const PALETTE = ['#4299E1', '#48BB78', '#ECC94B', '#9F7AEA', '#ED64A6', '#667EEA'];
 let colorIndex = 0;
+
 const getNextColor = () => {
     const color = PALETTE[colorIndex];
     colorIndex = (colorIndex + 1) % PALETTE.length;
@@ -43,7 +54,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const [isLoading, setIsLoading] = useState(true);
 
     useEffect(() => {
-        api.bootstrapApp().then(data => {
+        api.fetchAllData().then(data => {
             setAppData(data);
         }).catch(err => {
             console.error("Failed to load initial data", err);
@@ -52,22 +63,41 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         });
     }, []);
 
-    const optimisticUpdate = useCallback(async (updateFn: (currentData: AppData) => AppData, apiCall: () => Promise<any>) => {
+    const performOptimisticUpdate = useCallback(async (updateFunction: (currentData: AppData) => AppData) => {
         const originalData = appData;
-        const newData = updateFn(createDeepCopy(originalData));
-        setAppData(newData);
+        const newData = updateFunction(createDeepCopy(originalData));
+        setAppData(newData); // Optimistic update
         try {
-            await apiCall();
+            const savedData = await api.saveData(newData);
+            setAppData(savedData); // Sync with server state
         } catch (error) {
-            console.error("API call failed, rolling back optimistic update:", error);
-            setAppData(originalData); // Rollback
-            throw error;
+            console.error("Failed to save data, rolling back:", error);
+            setAppData(originalData); // Rollback on error
+            throw error; // Re-throw to inform caller
         }
     }, [appData]);
 
-    const createNotification = (d: AppData, serviceId: string, author: string, message: string, categoryName?: string, itemId?: string) => {
+    const addNotification = useCallback((
+        currentData: AppData,
+        author: string,
+        serviceId: string,
+        action: 'add' | 'update' | 'delete',
+        title: string,
+        categoryName?: string,
+        itemId?: string
+    ) => {
+        if (NOTIFICATION_EXCLUSIONS.has(serviceId)) return currentData;
+        
+        const serviceName = serviceMap[serviceId]?.name || serviceId;
+        let actionText = '';
+        switch(action) {
+            case 'add': actionText = 'aggiunto'; break;
+            case 'update': actionText = 'aggiornato'; break;
+            case 'delete': actionText = 'rimosso'; break;
+        }
+        const message = `${author} ha ${actionText} "${title}" nella sezione ${serviceName}${categoryName ? ` > ${categoryName}`: ''}.`;
+        
         const newNotification: NotificationItem = {
-            id: `notif-local-${Date.now()}`,
             message,
             timestamp: new Date().toISOString(),
             serviceId,
@@ -75,255 +105,261 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             itemId,
             readBy: [author],
             author,
+            id: `notif-${Date.now()}-${Math.random()}`,
         };
-        d.notifications.unshift(newNotification);
-        if (d.notifications.length > 100) d.notifications.pop();
-        return d;
-    };
+        currentData.notifications.unshift(newNotification);
+        if (currentData.notifications.length > 100) {
+            currentData.notifications = currentData.notifications.slice(0, 100);
+        }
+        return currentData;
+    }, []);
 
     const uploadAndReplaceData = useCallback(async (serviceId: string, parsedData: Record<string, any[]>, fileName: string, author: string) => {
-        const updateFn = (d: AppData) => {
-            const oldMetadata = d.services_data[serviceId]?.metadata || {};
-            const newMetadata: Record<string, any> = {};
+        await performOptimisticUpdate(currentData => {
+            const oldMetadata = currentData.services_data[serviceId]?.metadata || {};
+            const newMetadata: Record<string, { icon: string; color: string; type?: 'text' | 'file'; createdAt?: string; }> = {};
+            
             for (const categoryName in parsedData) {
-                newMetadata[categoryName] = oldMetadata[categoryName] || { icon: 'Folder', color: getNextColor(), type: 'text', createdAt: new Date().toISOString() };
+                if (oldMetadata[categoryName]) {
+                    newMetadata[categoryName] = oldMetadata[categoryName];
+                } else {
+                    newMetadata[categoryName] = { icon: 'Folder', color: getNextColor(), type: 'text', createdAt: new Date().toISOString() };
+                }
             }
-            d.services_data[serviceId] = { data: parsedData, metadata: newMetadata, fileName };
-            return createNotification(d, serviceId, author, `${author} ha aggiornato i dati per ${serviceMap[serviceId]?.name} dal file "${fileName}".`);
-        };
-        const apiCall = () => api.updateService(serviceId, 'UPLOAD_AND_REPLACE', {
-            items: parsedData,
-            fileName,
-            categoriesMetadata: (updateFn(createDeepCopy(appData)).services_data[serviceId] as any).metadata,
-            author,
-            title: `dati da ${fileName}`,
-            notificationAction: 'update',
+            
+            currentData.services_data[serviceId] = {
+                data: parsedData,
+                metadata: newMetadata,
+                fileName: `Dati caricati da: ${fileName}`,
+            };
+            
+            return addNotification(currentData, author, serviceId, 'update', `dati da ${fileName}`);
         });
-        await optimisticUpdate(updateFn, apiCall);
-    }, [appData, optimisticUpdate]);
+    }, [performOptimisticUpdate, addNotification]);
 
     const saveServiceData = useCallback(async (serviceId: string, newData: any, author: string, action?: 'add' | 'update' | 'delete', title?: string, itemId?: string) => {
-        const updateFn = (d: AppData) => {
-            if (!d.services_data[serviceId]) d.services_data[serviceId] = { data: null, fileName: null };
-            d.services_data[serviceId].data = newData;
-            d.services_data[serviceId].fileName = d.services_data[serviceId].fileName || 'Dati inseriti manualmente';
-            if (action && title) {
-                const verb = action === 'add' ? 'aggiunto' : action === 'update' ? 'aggiornato' : 'rimosso';
-                return createNotification(d, serviceId, author, `${author} ha ${verb} "${title}"`, undefined, itemId);
+        await performOptimisticUpdate(currentData => {
+            const currentServiceState = currentData.services_data[serviceId] || { data: null, fileName: null };
+            
+            if (serviceId === 'repository') {
+                currentData.services_data[serviceId] = {
+                    ...currentServiceState,
+                    data: newData,
+                    fileName: currentServiceState.fileName || 'Dati inseriti manualmente'
+                };
+            } else {
+                 currentData.services_data[serviceId] = {
+                    ...currentServiceState,
+                    data: newData,
+                    fileName: currentServiceState.fileName || (newData && Object.keys(newData).length > 0 ? 'Dati inseriti manualmente' : null),
+                };
             }
-            return d;
-        };
-        
-        let apiAction: string;
-        let payload: any = { author, title, notificationAction: action, itemId };
 
-        if (serviceId.startsWith('shifts-')) {
-            apiAction = 'SAVE_SHIFTS';
-            payload.shifts = newData;
-            payload.level = serviceId.includes('primo') ? 'primo' : 'secondo';
-        } else {
-            apiAction = 'SAVE_SERVICE_DATA';
-            payload.newData = newData;
-        }
-
-        await optimisticUpdate(updateFn, () => api.updateService(serviceId, apiAction, payload));
-    }, [appData, optimisticUpdate]);
+            if(action && title) {
+                return addNotification(currentData, author, serviceId, action, title, undefined, itemId);
+            }
+            return currentData;
+        });
+    }, [performOptimisticUpdate, addNotification]);
 
     const onAddCategory = useCallback(async (serviceId: string, categoryName: string, author: string, type: 'text' | 'file' = 'text') => {
-        const metaUpdate = { icon: 'Folder', color: getNextColor(), type, createdAt: new Date().toISOString() };
-        await optimisticUpdate(
-            d => {
-                if (!d.services_data[serviceId]) d.services_data[serviceId] = { data: {}, metadata: {}, fileName: 'Dati inseriti manualmente' };
-                if (!d.services_data[serviceId].data) d.services_data[serviceId].data = {};
-                d.services_data[serviceId].data[categoryName] = [];
-                if (!d.services_data[serviceId].metadata) d.services_data[serviceId].metadata = {};
-                d.services_data[serviceId].metadata![categoryName] = metaUpdate;
-                return createNotification(d, serviceId, author, `${author} ha aggiunto la sezione "${categoryName}"`);
-            },
-            () => api.updateService(serviceId, 'ADD_CATEGORY', { categoryName, metaUpdate, author, title: `sezione: ${categoryName}`, notificationAction: 'add' })
-        );
-    }, [optimisticUpdate]);
-    
-    const onRenameCategory = useCallback(async (serviceId: string, oldName: string, newName: string, author: string) => {
-         await optimisticUpdate(
-            d => {
-                const service = d.services_data[serviceId];
-                if (service?.data?.[oldName]) {
-                    service.data[newName] = service.data[oldName];
-                    delete service.data[oldName];
-                    if(service.metadata?.[oldName]) {
-                        service.metadata[newName] = service.metadata[oldName];
-                        delete service.metadata[oldName];
-                    }
-                }
-                return createNotification(d, serviceId, author, `${author} ha rinominato la sezione "${oldName}" in "${newName}"`);
-            },
-            () => api.updateService(serviceId, 'RENAME_CATEGORY', { oldName, newName, author, title: `sezione: ${oldName} in ${newName}`, notificationAction: 'update' })
-        );
-    }, [optimisticUpdate]);
+        if (appData.services_data[serviceId]?.data?.[categoryName] !== undefined) {
+            alert("Una sezione con questo nome esiste già.");
+            return;
+        }
+        await performOptimisticUpdate(d => {
+            if (!d.services_data[serviceId]) d.services_data[serviceId] = { data: {}, metadata: {}, fileName: 'Dati inseriti manualmente' };
+            if (!d.services_data[serviceId].data) d.services_data[serviceId].data = {};
+            if (!d.services_data[serviceId].metadata) d.services_data[serviceId].metadata = {};
 
-    const onUpdateCategoryMetadata = useCallback(async (serviceId: string, categoryName: string, metaUpdate: Partial<{ icon: string; color: string; }>) => {
-         await optimisticUpdate(
-            d => {
-                const meta = d.services_data[serviceId]?.metadata?.[categoryName];
-                if(meta) d.services_data[serviceId].metadata![categoryName] = {...meta, ...metaUpdate};
-                return d;
-            },
-            () => api.updateService(serviceId, 'UPDATE_CATEGORY_METADATA', { categoryName, metaUpdate })
-        );
-    }, [optimisticUpdate]);
+            d.services_data[serviceId].data[categoryName] = [];
+            d.services_data[serviceId].metadata![categoryName] = { icon: 'Folder', color: getNextColor(), type: type, createdAt: new Date().toISOString() };
+            return addNotification(d, author, serviceId, 'add', `sezione: ${categoryName}`);
+        });
+    }, [appData, performOptimisticUpdate, addNotification]);
 
     const onDeleteCategory = useCallback(async (serviceId: string, categoryName: string, author: string) => {
-         await optimisticUpdate(
-            d => {
-                if(d.services_data[serviceId]?.data) delete d.services_data[serviceId].data[categoryName];
-                if(d.services_data[serviceId]?.metadata) delete d.services_data[serviceId].metadata![categoryName];
-                return createNotification(d, serviceId, author, `${author} ha eliminato la sezione "${categoryName}"`);
-            },
-            () => api.updateService(serviceId, 'DELETE_CATEGORY', { categoryName, author, title: `sezione: ${categoryName}`, notificationAction: 'delete' })
-        );
-    }, [optimisticUpdate]);
-    
-     const onDeleteMultipleCategories = useCallback(async (serviceId: string, categoryNames: string[], author: string) => {
-         await optimisticUpdate(
-            d => {
-                const service = d.services_data[serviceId];
-                if(service?.data) {
-                    categoryNames.forEach(name => {
-                        delete service.data[name];
-                        if(service.metadata) delete service.metadata[name];
-                    });
+        await performOptimisticUpdate(d => {
+            if (d.services_data[serviceId]?.data) delete d.services_data[serviceId].data[categoryName];
+            if (d.services_data[serviceId]?.metadata) delete d.services_data[serviceId].metadata![categoryName];
+            return addNotification(d, author, serviceId, 'delete', `sezione: ${categoryName}`);
+        });
+    }, [performOptimisticUpdate, addNotification]);
+
+    const onDeleteMultipleCategories = useCallback(async (serviceId: string, categoryNames: string[], author: string) => {
+        await performOptimisticUpdate(d => {
+            const service = d.services_data[serviceId];
+            if (service?.data) {
+                categoryNames.forEach(name => {
+                    delete service.data[name];
+                    if (service.metadata) delete service.metadata[name];
+                });
+            }
+            const title = `${categoryNames.length} sezion${categoryNames.length > 1 ? 'i' : 'e'}`;
+            return addNotification(d, author, serviceId, 'delete', title);
+        });
+    }, [performOptimisticUpdate, addNotification]);
+
+    const onRenameCategory = useCallback(async (serviceId: string, oldName: string, newName: string, author: string) => {
+        if (appData.services_data[serviceId]?.data?.[newName] !== undefined && oldName !== newName) {
+            alert("Nuovo nome non valido o già in uso."); return;
+        }
+        await performOptimisticUpdate(d => {
+            const service = d.services_data[serviceId];
+            if (service?.data?.[oldName] !== undefined) {
+                service.data[newName] = service.data[oldName];
+                delete service.data[oldName];
+                if (service.metadata?.[oldName]) {
+                    service.metadata[newName] = service.metadata[oldName];
+                    delete service.metadata[oldName];
                 }
-                return createNotification(d, serviceId, author, `${author} ha eliminato ${categoryNames.length} sezioni`);
-            },
-            () => api.updateService(serviceId, 'DELETE_MULTIPLE_CATEGORIES', { categoryNames, author, title: `${categoryNames.length} sezioni`, notificationAction: 'delete' })
-        );
-    }, [optimisticUpdate]);
+            }
+            return addNotification(d, author, serviceId, 'update', `sezione: ${oldName} in ${newName}`);
+        });
+    }, [appData, performOptimisticUpdate, addNotification]);
+
+    const onUpdateCategoryMetadata = useCallback(async (serviceId: string, categoryName: string, metaUpdate: Partial<{ icon: string; color: string; }>) => {
+        await performOptimisticUpdate(d => {
+            const meta = d.services_data[serviceId]?.metadata?.[categoryName];
+            if (meta) d.services_data[serviceId].metadata![categoryName] = { ...meta, ...metaUpdate };
+            return d;
+        });
+    }, [performOptimisticUpdate]);
 
     const onAddItem = useCallback(async (serviceId: string, categoryName: string, item: any, author: string) => {
-        const title = item.casistica || item.richiesta || 'Nuovo elemento';
-        await optimisticUpdate(
-            d => {
-                const items = d.services_data[serviceId]?.data?.[categoryName];
-                if(Array.isArray(items)) items.unshift(item);
-                return createNotification(d, serviceId, author, `${author} ha aggiunto "${title}"`, categoryName, item.id);
-            },
-            () => api.updateService(serviceId, 'ADD_ITEM', { categoryName, item, author, title, notificationAction: 'add', itemId: item.id })
-        );
-    }, [optimisticUpdate]);
+        await performOptimisticUpdate(d => {
+            const items = d.services_data[serviceId]?.data?.[categoryName];
+            if (Array.isArray(items)) items.unshift(item);
+            return addNotification(d, author, serviceId, 'add', item.casistica || item.richiesta || 'Nuovo elemento', categoryName, item.id);
+        });
+    }, [performOptimisticUpdate, addNotification]);
 
     const onUpdateItem = useCallback(async (serviceId: string, categoryName: string, itemId: string, updatedItem: any, author: string) => {
-        let title = '';
-        await optimisticUpdate(
-            d => {
-                const items = d.services_data[serviceId]?.data?.[categoryName];
-                const itemIndex = Array.isArray(items) ? items.findIndex((i: any) => i.id === itemId) : -1;
-                if(items && itemIndex > -1) {
-                    items[itemIndex] = { ...items[itemIndex], ...updatedItem };
-                    title = items[itemIndex].casistica || items[itemIndex].richiesta || items[itemIndex].title || 'Elemento';
-                    return createNotification(d, serviceId, author, `${author} ha aggiornato "${title}"`, categoryName, itemId);
-                }
-                return d;
-            },
-            () => api.updateService(serviceId, 'UPDATE_ITEM', { categoryName, itemId, updatedItem, author, title, notificationAction: 'update' })
-        );
-    }, [optimisticUpdate]);
+        await performOptimisticUpdate(d => {
+            const items = d.services_data[serviceId]?.data?.[categoryName];
+            const itemIndex = Array.isArray(items) ? items.findIndex((i: any) => i.id === itemId) : -1;
+            if (items && itemIndex > -1) {
+                items[itemIndex] = { ...items[itemIndex], ...updatedItem };
+                const title = items[itemIndex].casistica || items[itemIndex].richiesta || items[itemIndex].title || 'Elemento';
+                return addNotification(d, author, serviceId, 'update', title, categoryName, itemId);
+            }
+            return d;
+        });
+    }, [performOptimisticUpdate, addNotification]);
 
     const onDeleteItem = useCallback(async (serviceId: string, categoryName: string, itemId: string, author: string) => {
-        let title = '';
-        await optimisticUpdate(
-            d => {
-                const items = d.services_data[serviceId]?.data?.[categoryName];
-                const itemToDelete = Array.isArray(items) ? items.find((i: any) => i.id === itemId) : undefined;
-                if (items && itemToDelete) {
-                    title = itemToDelete.casistica || itemToDelete.richiesta || itemToDelete.title || 'Elemento';
-                    d.services_data[serviceId].data[categoryName] = items.filter((i: any) => i.id !== itemId);
-                    return createNotification(d, serviceId, author, `${author} ha eliminato "${title}"`, categoryName, itemId);
-                }
-                return d;
-            },
-            () => api.updateService(serviceId, 'DELETE_ITEM', { categoryName, itemId, author, title, notificationAction: 'delete' })
-        );
-    }, [optimisticUpdate]);
-    
+        await performOptimisticUpdate(d => {
+            const items = d.services_data[serviceId]?.data?.[categoryName];
+            const itemToDelete = Array.isArray(items) ? items.find((i: any) => i.id === itemId) : undefined;
+            if (items && itemToDelete) {
+                d.services_data[serviceId].data[categoryName] = items.filter((i: any) => i.id !== itemId);
+                const title = itemToDelete.casistica || itemToDelete.richiesta || itemToDelete.title || 'Elemento';
+                return addNotification(d, author, serviceId, 'delete', title, categoryName, itemId);
+            }
+            return d;
+        });
+    }, [performOptimisticUpdate, addNotification]);
+
     const onAddFile = useCallback(async (serviceId: string, categoryName: string, fileData: Omit<StoredFile, 'id' | 'author' | 'createdAt' | 'url'>, file: File, author: string) => {
-        const url = await api.uploadFile(file, file.name); // Upload first
-        const newFile: StoredFile = { ...fileData, id: `repo-file-${Date.now()}`, author, createdAt: new Date().toISOString(), url };
-        
-        await optimisticUpdate(
-            d => {
-                if (!d.services_data[serviceId]) d.services_data[serviceId] = { data: [], fileName: 'Dati inseriti manualmente' };
-                if (!Array.isArray(d.services_data[serviceId].data)) d.services_data[serviceId].data = [];
+        const url = await api.uploadFile(file, file.name);
+        await performOptimisticUpdate(d => {
+            if (!d.services_data[serviceId]) d.services_data[serviceId] = { data: [], fileName: 'Dati inseriti manualmente' };
+
+            const newFile: StoredFile = {
+                ...fileData,
+                id: `repo-file-${Date.now()}`,
+                author: author || 'Sconosciuto',
+                createdAt: new Date().toISOString(),
+                url: url,
+            };
+
+            if (serviceId === 'repository') {
+                if (!Array.isArray(d.services_data[serviceId].data)) {
+                    d.services_data[serviceId].data = [];
+                }
                 d.services_data[serviceId].data.unshift(newFile);
-                return createNotification(d, serviceId, author, `${author} ha caricato il file "${newFile.name}"`, categoryName, newFile.id);
-            },
-            () => api.updateService(serviceId, 'ADD_FILE', { fileData: newFile, author, title: `file "${newFile.name}"`, notificationAction: 'add', itemId: newFile.id })
-        );
-    }, [optimisticUpdate]);
+            } else {
+                 // Handle categorized file services if needed in the future
+            }
+            
+            return addNotification(d, author, serviceId, 'add', `file "${newFile.name}"`, categoryName, newFile.id);
+        });
+    }, [performOptimisticUpdate, addNotification]);
 
     const onDeleteFile = useCallback(async (serviceId: string, categoryName: string, fileId: string, author: string) => {
-        let title = '';
-        await optimisticUpdate(
-            d => {
-                const files = d.services_data[serviceId]?.data as StoredFile[];
-                const fileToDelete = Array.isArray(files) ? files.find(f => f.id === fileId) : undefined;
-                if (fileToDelete) {
-                    title = fileToDelete.name;
-                    d.services_data[serviceId].data = files.filter(f => f.id !== fileId);
-                    return createNotification(d, serviceId, author, `${author} ha eliminato il file "${title}"`, categoryName, fileId);
-                }
-                return d;
-            },
-            () => api.updateService(serviceId, 'DELETE_FILE', { itemId: fileId, author, title: `file "${title}"`, notificationAction: 'delete' })
-        );
-    }, [optimisticUpdate]);
+        await performOptimisticUpdate(d => {
+            const serviceData = d.services_data[serviceId];
+            if (!serviceData?.data) return d;
+            
+            let fileToDelete: StoredFile | undefined;
+            if (serviceId === 'repository' && Array.isArray(serviceData.data)) {
+                 fileToDelete = serviceData.data.find((f: StoredFile) => f.id === fileId);
+                 if (fileToDelete) serviceData.data = serviceData.data.filter((f: StoredFile) => f.id !== fileId);
+            }
+            
+            if (fileToDelete) {
+                return addNotification(d, author, serviceId, 'delete', `file "${fileToDelete.name}"`, categoryName, fileId);
+            }
+            return d;
+        });
+    }, [performOptimisticUpdate, addNotification]);
 
     const markNotificationRead = useCallback(async (notificationId: string, username: string) => {
-        await optimisticUpdate(
-            d => {
-                const notif = d.notifications.find(n => n.id === notificationId);
-                if (notif && !notif.readBy.includes(username)) notif.readBy.push(username);
-                return d;
-            },
-            () => api.markNotificationRead(notificationId, username)
-        );
-    }, [optimisticUpdate]);
+        await performOptimisticUpdate(d => {
+            const notification = d.notifications.find(n => n.id === notificationId);
+            if (notification && !notification.readBy.includes(username)) {
+                notification.readBy.push(username);
+            }
+            return d;
+        });
+    }, [performOptimisticUpdate]);
 
     const markAllNotificationsRead = useCallback(async (username: string) => {
-        await optimisticUpdate(
-            d => {
-                d.notifications.forEach(n => { if (!n.readBy.includes(username)) n.readBy.push(username); });
-                return d;
-            },
-            () => api.markAllNotificationsRead(username)
-        );
-    }, [optimisticUpdate]);
+        await performOptimisticUpdate(d => {
+            d.notifications.forEach(n => {
+                if (!n.readBy.includes(username)) n.readBy.push(username);
+            });
+            return d;
+        });
+    }, [performOptimisticUpdate]);
 
     const updateUser = useCallback(async (user: User) => {
-        await optimisticUpdate(
-            d => {
-                d.users[user.name.toLowerCase()] = { ...d.users[user.name.toLowerCase()], ...user };
-                return d;
-            },
-            () => api.updateUser(user)
-        );
-    }, [optimisticUpdate]);
+        await performOptimisticUpdate(d => {
+            const userKey = user.name.toLowerCase();
+            d.users[userKey] = { ...d.users[userKey], ...user };
+            return d;
+        });
+    }, [performOptimisticUpdate]);
 
     const deleteUser = useCallback(async (username: string) => {
-        await optimisticUpdate(
-            d => {
-                delete d.users[username.toLowerCase()];
-                return d;
-            },
-            () => api.deleteUser(username)
-        );
-    }, [optimisticUpdate]);
+        await performOptimisticUpdate(d => {
+            const userKey = username.toLowerCase();
+            delete d.users[userKey];
+            return d;
+        });
+    }, [performOptimisticUpdate]);
 
     const value: DataContextType = {
-        appData, servicesData: appData.services_data, notifications: appData.notifications, isLoading,
-        uploadAndReplaceData, saveServiceData, onAddCategory, onDeleteCategory, onDeleteMultipleCategories,
-        onRenameCategory, onUpdateCategoryMetadata, onAddItem, onUpdateItem, onDeleteItem,
-        onAddFile, onDeleteFile, markNotificationRead, markAllNotificationsRead, updateUser, deleteUser,
+        appData,
+        servicesData: appData.services_data,
+        notifications: appData.notifications,
+        isLoading,
+        uploadAndReplaceData,
+        saveServiceData,
+        onAddCategory,
+        onDeleteCategory,
+        onDeleteMultipleCategories,
+        onRenameCategory,
+        onUpdateCategoryMetadata,
+        onAddItem,
+        onUpdateItem,
+        onDeleteItem,
+        onAddFile,
+        onDeleteFile,
+        markNotificationRead,
+        markAllNotificationsRead,
+        updateUser,
+        deleteUser,
     };
 
     if (isLoading && !Object.keys(appData.users).length) {
@@ -339,6 +375,8 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
 export const useData = (): DataContextType => {
     const context = useContext(DataContext);
-    if (context === undefined) throw new Error('useData must be used within a DataProvider');
+    if (context === undefined) {
+        throw new Error('useData must be used within a DataProvider');
+    }
     return context;
 };

@@ -1,69 +1,92 @@
-import { AppData, User, StoredFile } from '../types';
 
-async function apiRequest(method: 'GET' | 'POST' | 'PATCH' | 'DELETE', endpoint: string, body?: any) {
-    const options: RequestInit = {
-        method,
-        headers: { 'Content-Type': 'application/json' },
-    };
-    if (body) {
-        options.body = JSON.stringify(body);
-    }
-    const response = await fetch(endpoint, options);
-    if (!response.ok) {
-        const errorText = await response.text();
-        console.error(`API request failed for ${method} ${endpoint}:`, errorText);
-        throw new Error(`Request failed: ${errorText}`);
-    }
-    // Handle cases where there's no JSON body in the response (e.g., 204 No Content)
-    const contentType = response.headers.get("content-type");
-    if (contentType && contentType.indexOf("application/json") !== -1) {
-        return response.json();
-    }
-    return null; 
+import { AppData, User, OnlineUser, UserProfile } from '../types';
+
+/**
+ * Fetches the entire application database from the backend.
+ */
+async function fetchAllData(): Promise<AppData> {
+  const response = await fetch('/api/data');
+  if (!response.ok) {
+    const errorText = await response.text();
+    console.error('Failed to fetch data:', errorText);
+    throw new Error('Impossibile caricare i dati dal server.');
+  }
+  return response.json();
 }
 
+/**
+ * Saves the entire application database to the backend.
+ * @param dbState The complete state of the application data.
+ */
+async function saveData(dbState: AppData): Promise<AppData> {
+  const response = await fetch('/api/data', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(dbState),
+  });
+  if (!response.ok) {
+    const errorText = await response.text();
+    console.error('Failed to save data:', errorText);
+    throw new Error('Salvataggio dei dati fallito.');
+  }
+  return response.json();
+}
+
+/**
+ * Uploads a file to the backend blob storage.
+ * @param file The File or Blob object to upload.
+ * @param filename The desired name for the file.
+ * @returns The public URL of the uploaded file.
+ */
+async function uploadFile(file: File | Blob, filename: string): Promise<string> {
+    const response = await fetch(`/api/upload?filename=${encodeURIComponent(filename)}`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': file.type
+        },
+        body: file,
+    });
+    if (!response.ok) {
+        const errorText = await response.text();
+        console.error('File upload failed:', errorText);
+        throw new Error("Caricamento del file fallito.");
+    }
+    const result = await response.json();
+    return result.url;
+}
+
+// --- User Management ---
+async function fetchAllUsers(): Promise<Record<string, User>> {
+    const response = await fetch('/api/users');
+    if (!response.ok) throw new Error("Failed to fetch users.");
+    return response.json();
+}
+
+async function updateUser(user: User): Promise<Record<string, User>> {
+    const response = await fetch('/api/users', {
+        method: 'POST', // Using POST as an upsert
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(user),
+    });
+    if (!response.ok) throw new Error("Failed to update user.");
+    return response.json();
+}
+
+async function deleteUser(username: string): Promise<Record<string, User>> {
+    const response = await fetch(`/api/users?username=${encodeURIComponent(username)}`, {
+        method: 'DELETE',
+    });
+    if (!response.ok) throw new Error("Failed to delete user.");
+    return response.json();
+}
 
 const api = {
-    bootstrapApp: (): Promise<AppData> => {
-        return apiRequest('GET', '/api/data?resource=bootstrap');
-    },
-
-    updateService: (serviceId: string, action: string, payload: any): Promise<any> => {
-        return apiRequest('PATCH', `/api/data?serviceId=${serviceId}`, { action, payload });
-    },
-    
-    uploadFile: async (file: File | Blob, filename: string): Promise<string> => {
-        const response = await fetch(`/api/upload?filename=${encodeURIComponent(filename)}`, {
-            method: 'POST',
-            headers: { 'Content-Type': file.type },
-            body: file,
-        });
-        if (!response.ok) {
-            const errorText = await response.text();
-            throw new Error(`File upload failed: ${errorText}`);
-        }
-        const result = await response.json();
-        return result.url;
-    },
-
-    // User Management
-    fetchAllUsers: (): Promise<Record<string, User>> => {
-        return apiRequest('GET', '/api/users');
-    },
-    updateUser: (user: User): Promise<User> => {
-        return apiRequest('POST', '/api/users', user);
-    },
-    deleteUser: (username: string): Promise<any> => {
-        return apiRequest('DELETE', `/api/users?username=${encodeURIComponent(username)}`);
-    },
-
-    // Notifications
-    markNotificationRead: (id: string, username: string): Promise<any> => {
-        return apiRequest('PATCH', '/api/data?resource=notifications', { action: 'mark_read', id, username });
-    },
-    markAllNotificationsRead: (username: string): Promise<any> => {
-        return apiRequest('PATCH', '/api/data?resource=notifications', { action: 'mark_all_read', username });
-    }
+  fetchAllData,
+  saveData,
+  uploadFile,
+  fetchAllUsers,
+  updateUser,
+  deleteUser,
 };
 
 export default api;
