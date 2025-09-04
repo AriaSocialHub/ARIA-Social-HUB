@@ -1,4 +1,5 @@
 
+
 import React, { useState, useMemo } from 'react';
 import { useData } from './contexts/DataContext';
 import { User } from './types';
@@ -98,7 +99,7 @@ const UserManagementApp: React.FC = () => {
                                     </td>
                                     <td className="px-4 py-3">
                                         <span className={`px-2 py-1 rounded-full text-xs font-semibold ${user.accessLevel === 'admin' ? 'bg-purple-100 text-purple-800' : 'bg-green-100 text-green-800'}`}>
-                                            {user.accessLevel === 'admin' ? 'Secondo Livello' : 'Primo Livello'}
+                                            {user.accessLevel === 'admin' ? 'Demand' : 'Moderatori'}
                                         </span>
                                     </td>
                                     <td className="px-4 py-3 text-center">

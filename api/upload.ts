@@ -1,3 +1,6 @@
+// FIX: Add a triple-slash directive to include Node.js type definitions.
+/// <reference types="node" />
+
 import { supabaseAdmin } from '../lib/supabaseClient';
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 

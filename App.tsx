@@ -1,4 +1,5 @@
 
+
 import React, { useState, useCallback, useEffect, useMemo, useRef } from 'react';
 import { LogOut, Eye, FileUp, ChevronDown, LayoutGrid, Folder, Wrench, Bell, Menu, X, Bot, Users as UsersIcon, Search } from 'lucide-react';
 import UploadApp from './UploadApp';
@@ -15,6 +16,11 @@ import GlobalSearchModal from './components/GlobalSearchModal';
 
 type View = 'upload' | string; // Can be 'upload' or a service ID
 type AuthStatus = 'LOGGED_OUT' | 'NEEDS_PASSWORD_CHANGE' | 'NEEDS_AVATAR_SETUP' | 'LOGGED_IN';
+
+const ACCESS_LEVEL_LABELS: { [key in 'admin' | 'view']: string } = {
+    admin: 'Demand',
+    view: 'Moderatori'
+};
 
 const NavItem = React.memo<React.PropsWithChildren<{ onClick: () => void; active?: boolean; className?: string }>>(({ children, onClick, active, className }) => (
     <button onClick={onClick} className={`inline-flex items-center gap-2 px-3 py-2 rounded-md text-sm font-semibold transition-colors ${active ? 'bg-white/20' : 'hover:bg-white/10'} ${className || ''}`}>
@@ -308,7 +314,7 @@ const App: React.FC = () => {
                         <div className={`menu-panel w-64 right-0 origin-top-right ${openMenu === 'settings' ? 'open' : ''}`}>
                             <div className="px-4 py-3 border-b border-gray-100">
                                 <div className="font-semibold text-gray-800">{currentUser.name}</div>
-                                <div className="text-sm text-gray-500">{currentUser.accessLevel === 'admin' ? 'Secondo Livello' : 'Primo Livello'}</div>
+                                <div className="text-sm text-gray-500">{ACCESS_LEVEL_LABELS[currentUser.accessLevel]}</div>
                             </div>
                             <div className="p-2 space-y-1">
                                 <MenuItem onClick={() => {handleMarkAllReadAndShow(); setOpenMenu(null);}} className="!flex !justify-between">
@@ -318,7 +324,7 @@ const App: React.FC = () => {
                                 {currentUser.accessLevel === 'admin' && (
                                     <MenuItem onClick={handleToggleAdminView}>
                                         <Eye className="h-5 w-5 text-gray-500" />
-                                        <span>{isAdminViewing ? 'Vista Secondo Livello' : 'Vista Primo Livello'}</span>
+                                        <span>{isAdminViewing ? 'Vista Demand' : 'Vista Moderatori'}</span>
                                     </MenuItem>
                                 )}
                                 {currentUser.accessLevel === 'admin' && (
@@ -434,7 +440,7 @@ const App: React.FC = () => {
                             </MenuItem>
                             {currentUser.accessLevel === 'admin' && (
                                 <MenuItem onClick={() => { handleToggleAdminView(); setIsMobileMenuOpen(false); }}>
-                                    <Eye className="text-gray-500" /> <span>{isAdminViewing ? 'Vista Secondo Livello' : 'Vista Primo Livello'}</span>
+                                    <Eye className="text-gray-500" /> <span>{isAdminViewing ? 'Vista Demand' : 'Vista Moderatori'}</span>
                                 </MenuItem>
                             )}
                              {currentUser.accessLevel === 'admin' && (
@@ -455,7 +461,7 @@ const App: React.FC = () => {
                             <UserAvatar className="h-10 w-10 text-gray-700" />
                             <div>
                                 <div className="font-semibold text-gray-800">{currentUser.name}</div>
-                                <div className="text-sm text-gray-500">{currentUser.accessLevel === 'admin' ? 'Secondo Livello' : 'Primo Livello'}</div>
+                                <div className="text-sm text-gray-500">{ACCESS_LEVEL_LABELS[currentUser.accessLevel]}</div>
                             </div>
                         </div>
                     </div>

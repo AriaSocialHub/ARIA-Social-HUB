@@ -1,4 +1,5 @@
 
+
 import React, { useState } from 'react';
 import { XCircle, Eye, EyeOff, Bot } from 'lucide-react';
 import { useData } from '../contexts/DataContext';
@@ -75,14 +76,14 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
                                 onClick={() => handleAccessLevelChange('view')}
                                 className={`relative z-10 w-1/2 py-2 text-sm font-semibold text-center rounded-full transition-colors ${accessLevel === 'view' ? 'text-[var(--c-primary)]' : 'text-gray-500 hover:text-gray-700'}`}
                             >
-                                Primo Livello
+                                Moderatori
                             </button>
                             <button
                                 type="button"
                                 onClick={() => handleAccessLevelChange('admin')}
                                 className={`relative z-10 w-1/2 py-2 text-sm font-semibold text-center rounded-full transition-colors ${accessLevel === 'admin' ? 'text-[var(--c-primary)]' : 'text-gray-500 hover:text-gray-700'}`}
                             >
-                                Secondo Livello
+                                Demand
                             </button>
                         </div>
                     </div>
