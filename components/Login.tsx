@@ -1,10 +1,9 @@
 
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { XCircle, Eye, EyeOff, Bot } from 'lucide-react';
 import { useData } from '../contexts/DataContext';
 import { User } from '../types';
-import { ADMIN_USERS, MODERATOR_USERS } from '../services/userData';
 
 interface LoginProps {
   onLoginSuccess: (user: User) => void;
@@ -19,7 +18,12 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
   const [isLoading, setIsLoading] = useState(false);
   const { appData } = useData();
   
-  const userList = accessLevel === 'admin' ? ADMIN_USERS : MODERATOR_USERS;
+  const userList = useMemo(() => {
+    return Object.values(appData.users)
+      .filter(user => user.accessLevel === accessLevel)
+      .map(user => user.name)
+      .sort((a, b) => a.localeCompare(b));
+  }, [appData.users, accessLevel]);
   
   const handleAccessLevelChange = (newLevel: 'view' | 'admin') => {
     setAccessLevel(newLevel);
@@ -38,6 +42,7 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
 
     setTimeout(() => {
         const users = appData.users;
+        // The selectedUser is the user's name (e.g., "John Doe"). The key in the DB is lowercased.
         const userKey = selectedUser.trim().toLowerCase();
         const foundUser = users[userKey];
 
