@@ -4,13 +4,15 @@ import React, { useState, useMemo } from 'react';
 import { useData } from './contexts/DataContext';
 import { User } from './types';
 import { getAvatar, getAvatarColor } from './services/avatarRegistry';
-import { Users, Search, Edit, Trash2, AlertTriangle, UserPlus, Eye, EyeOff } from 'lucide-react';
+import { Users, Search, Edit, Trash2, AlertTriangle, UserPlus } from 'lucide-react';
 import UserEditModal from './components/UserEditModal';
+import UserAddModal from './components/UserAddModal';
 
 const UserManagementApp: React.FC = () => {
-    const { appData, updateUser, deleteUser } = useData();
+    const { appData, updateUser, deleteUser, addUser } = useData();
     const [searchTerm, setSearchTerm] = useState('');
-    const [isModalOpen, setModalOpen] = useState(false);
+    const [isEditModalOpen, setEditModalOpen] = useState(false);
+    const [isAddModalOpen, setAddModalOpen] = useState(false);
     const [editingUser, setEditingUser] = useState<User | null>(null);
     const [userToDelete, setUserToDelete] = useState<User | null>(null);
 
@@ -31,7 +33,7 @@ const UserManagementApp: React.FC = () => {
 
     const handleEdit = (user: User) => {
         setEditingUser(user);
-        setModalOpen(true);
+        setEditModalOpen(true);
     };
     
     const handleSaveUser = async (user: User, newPassword?: string) => {
@@ -41,7 +43,14 @@ const UserManagementApp: React.FC = () => {
             userToSave.forcePasswordChange = true;
         }
         await updateUser(userToSave);
-        setModalOpen(false);
+        setEditModalOpen(false);
+    };
+    
+    const handleAddUser = async (userData: { name: string; password_NOT_HASHED: string; accessLevel: 'admin' | 'view' }) => {
+        if (addUser) {
+            await addUser(userData);
+        }
+        setAddModalOpen(false);
     };
 
     const handleDeleteUser = async () => {
@@ -60,6 +69,10 @@ const UserManagementApp: React.FC = () => {
                         <p className="text-gray-500">Visualizza e modifica gli utenti del sistema.</p>
                     </div>
                 </div>
+                <button onClick={() => setAddModalOpen(true)} className="btn btn-primary">
+                    <UserPlus className="h-5 w-5" />
+                    <span>Aggiungi Utente</span>
+                </button>
             </div>
 
             <div className="relative mb-6">
@@ -116,11 +129,18 @@ const UserManagementApp: React.FC = () => {
                 </table>
             </div>
             
-            {isModalOpen && editingUser && (
+            {isEditModalOpen && editingUser && (
                 <UserEditModal 
                     user={editingUser}
-                    onClose={() => setModalOpen(false)}
+                    onClose={() => setEditModalOpen(false)}
                     onSave={handleSaveUser}
+                />
+            )}
+
+            {isAddModalOpen && addUser && (
+                <UserAddModal 
+                    onClose={() => setAddModalOpen(false)}
+                    onSave={handleAddUser}
                 />
             )}
             
@@ -134,7 +154,7 @@ const UserManagementApp: React.FC = () => {
                         </p>
                         <div className="flex justify-center gap-4">
                            <button onClick={() => setUserToDelete(null)} className="btn btn-secondary">Annulla</button>
-                           <button onClick={handleDeleteUser} className="btn bg-red-600 hover:bg-red-700 text-white"><Trash2 className="w-5 w-5"/> Elimina</button>
+                           <button onClick={handleDeleteUser} className="btn bg-red-600 hover:bg-red-700 text-white"><Trash2 className="w-5 h-5"/> Elimina</button>
                         </div>
                     </div>
                 </div>

@@ -26,7 +26,6 @@ interface DataContextType {
     onDeleteFile: (serviceId: string, categoryName: string, fileId: string, author: string) => Promise<void>;
     markNotificationRead: (notificationId: string, username: string) => Promise<void>;
     markAllNotificationsRead: (username: string) => Promise<void>;
-    // FIX: Add 'addUser' to the context type to make it available to consumers.
     addUser: (userData: { name: string; password_NOT_HASHED: string; accessLevel: 'admin' | 'view' }) => Promise<void>;
     updateUser: (user: User) => Promise<void>;
     deleteUser: (username: string) => Promise<void>;
@@ -332,8 +331,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             return d;
         });
     }, [performOptimisticUpdate]);
-
-    // FIX: Implement and export the 'addUser' function.
+    
     const addUser = useCallback(async (userData: { name: string; password_NOT_HASHED: string; accessLevel: 'admin' | 'view' }) => {
         const userKey = userData.name.trim().toLowerCase();
         if (!userKey) {

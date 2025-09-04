@@ -1,9 +1,7 @@
 
 
-
-
 import React, { useState, useMemo, useCallback, useEffect, useRef } from 'react';
-import { ManualTicket, ManualTicketsData, UserProfile } from './types';
+import { ManualTicket, ManualTicketsData, User } from './types';
 import { useData } from './contexts/DataContext';
 import { Search, Plus, Download, Edit, Trash2, Filter as FilterIcon, AlertTriangle, Moon } from 'lucide-react';
 import ManualTicketModal from './components/manual-tickets/ManualTicketModal';
@@ -22,7 +20,13 @@ import {
 
 declare const html2pdf: any;
 
-const ManualTicketApp: React.FC<{ serviceId: string, isReadOnly: boolean, currentUser: UserProfile | null }> = ({ serviceId, isReadOnly, currentUser }) => {
+interface ManualTicketAppProps {
+  serviceId: string;
+  isReadOnly: boolean;
+  currentUser: User | null;
+}
+
+const ManualTicketApp: React.FC<ManualTicketAppProps> = ({ serviceId, isReadOnly, currentUser }) => {
     const { servicesData, saveServiceData } = useData();
     const tickets: ManualTicketsData = servicesData[serviceId]?.data || [];
 
@@ -33,6 +37,14 @@ const ManualTicketApp: React.FC<{ serviceId: string, isReadOnly: boolean, curren
     const [columnFilters, setColumnFilters] = useState<Record<string, string>>({});
     const [filterDropdown, setFilterDropdown] = useState<{ open: boolean, key: string, target: HTMLElement | null }>({ open: false, key: '', target: null });
     const filterDropdownRef = useRef<HTMLDivElement>(null);
+    
+    // Custom permission logic for this component
+    const userAccessLevel = currentUser?.accessLevel;
+    const isViewingAsModerator = userAccessLevel === 'admin' && isReadOnly;
+
+    const canAdd = !isViewingAsModerator;
+    const canEdit = !isViewingAsModerator;
+    const canDelete = userAccessLevel === 'admin' && !isViewingAsModerator;
 
     const handleDataUpdate = (newTickets: ManualTicketsData, action?: 'add' | 'update' | 'delete', title?: string, itemId?: string) => {
         if (!currentUser) return;
@@ -231,7 +243,7 @@ const ManualTicketApp: React.FC<{ serviceId: string, isReadOnly: boolean, curren
                         <input type="search" placeholder="Cerca ovunque..." value={globalSearch} onChange={e => setGlobalSearch(e.target.value)} className="pl-10 pr-4 py-2 w-full border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 bg-white text-gray-900" />
                     </div>
                     <button onClick={generatePDF} className="p-2.5 bg-white border border-gray-300 text-gray-700 rounded-md hover:bg-gray-100 shadow-sm" title="Esporta PDF"><Download className="h-5 w-5" /></button>
-                    {!isReadOnly && (
+                    {canAdd && (
                         <button onClick={() => { setEditingTicket(null); setIsModalOpen(true); }} className="flex items-center gap-2 px-4 py-2.5 bg-blue-600 text-white rounded-md hover:bg-blue-700 shadow-sm font-semibold">
                             <Plus className="h-5 w-5" />
                             <span className="hidden sm:inline">Nuovo</span>
@@ -256,7 +268,7 @@ const ManualTicketApp: React.FC<{ serviceId: string, isReadOnly: boolean, curren
                                     </th>
                                 )
                             })}
-                            {!isReadOnly && <th className="px-4 py-3 text-left font-semibold text-gray-600 uppercase tracking-wider">Azioni</th>}
+                            {(canEdit || canDelete) && <th className="px-4 py-3 text-left font-semibold text-gray-600 uppercase tracking-wider">Azioni</th>}
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-200 bg-white">
@@ -273,13 +285,13 @@ const ManualTicketApp: React.FC<{ serviceId: string, isReadOnly: boolean, curren
                                 <td className="px-4 py-3 whitespace-nowrap text-gray-700 font-medium text-center">{ticket.diff || '–'}</td>
                                 <td className="px-4 py-3 whitespace-nowrap text-center"><span className={`font-bold ${ticket.soglia === 'KO' ? 'text-red-600' : 'text-green-600'}`}>{ticket.soglia || '–'}</span></td>
                                 <td className="px-4 py-3 whitespace-nowrap text-xl text-center">{getFlagIcons(ticket)}</td>
-                                {!isReadOnly && <td className="px-4 py-3 whitespace-nowrap">
-                                    <button onClick={() => {setEditingTicket(ticket); setIsModalOpen(true);}} className="p-2 text-gray-500 hover:text-blue-600 rounded-full hover:bg-gray-100" title="Modifica"><Edit size={16}/></button>
-                                    <button onClick={() => setTicketToDelete(ticket)} className="p-2 text-red-600 hover:bg-red-100 rounded-full" title="Elimina"><Trash2 size={16}/></button>
+                                {(canEdit || canDelete) && <td className="px-4 py-3 whitespace-nowrap">
+                                    {canEdit && <button onClick={() => {setEditingTicket(ticket); setIsModalOpen(true);}} className="p-2 text-gray-500 hover:text-blue-600 rounded-full hover:bg-gray-100" title="Modifica"><Edit size={16}/></button>}
+                                    {canDelete && <button onClick={() => setTicketToDelete(ticket)} className="p-2 text-red-600 hover:bg-red-100 rounded-full" title="Elimina"><Trash2 size={16}/></button>}
                                 </td>}
                             </tr>
                         )) : (
-                            <tr><td colSpan={isReadOnly ? 9 : 10} className="text-center py-16 text-gray-500 bg-white">Nessun ticket trovato.</td></tr>
+                            <tr><td colSpan={(canEdit || canDelete) ? 10 : 9} className="text-center py-16 text-gray-500 bg-white">Nessun ticket trovato.</td></tr>
                         )}
                     </tbody>
                 </table>
