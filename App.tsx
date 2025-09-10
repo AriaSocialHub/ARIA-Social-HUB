@@ -1,5 +1,7 @@
 
 
+
+
 import React, { useState, useCallback, useEffect, useMemo, useRef } from 'react';
 import { LogOut, Eye, FileUp, ChevronDown, LayoutGrid, Folder, Wrench, Bell, Menu, X, Bot, Users as UsersIcon, Search } from 'lucide-react';
 import UploadApp from './UploadApp';
@@ -70,7 +72,10 @@ const App: React.FC = () => {
   }, [isDataLoading]);
 
   const { onlineUsers, signOutPresence } = useOnlinePresence(currentUser, currentUser?.accessLevel || null);
-  const isReadOnly = currentUser?.accessLevel === 'view' || (currentUser?.accessLevel === 'admin' && isAdminViewing);
+  const isReadOnly = useMemo(() => {
+    if (!currentUser) return true;
+    return currentUser.accessLevel === 'view' || (currentUser.accessLevel === 'admin' && isAdminViewing);
+  }, [currentUser, isAdminViewing]);
 
   const documentServices = useMemo(() => services.filter(s => s.category === 'document'), []);
   const utilityServices = useMemo(() => services.filter(s => s.category === 'utility'), []);
@@ -142,10 +147,12 @@ const App: React.FC = () => {
   }, [signOutPresence]);
   
   const handleToggleAdminView = useCallback(() => {
-    const newViewingState = !isAdminViewing;
-    setIsAdminViewing(newViewingState);
-    if (newViewingState && view === 'upload') {
-        setView('dashboard');
+    setIsAdminViewing(prev => !prev);
+    // When switching to moderator view, if we are on a page that is not available for moderators,
+    // we should redirect to the dashboard.
+    const currentViewIsHiddenForModerator = serviceMap[view]?.id === 'commentAnalysis' || view === 'upload';
+    if (!isAdminViewing && currentViewIsHiddenForModerator) {
+      setView('dashboard');
     }
     setOpenMenu(null);
   }, [isAdminViewing, view]);
@@ -226,6 +233,17 @@ const App: React.FC = () => {
   const CurrentAppComponent = view !== 'upload' ? currentService?.appComponent : null;
   const now = timeService.getNow();
 
+  const isUtilityHidden = (service: Service<any>) => {
+    if (service.id === 'userManagement') return true; // Handled separately in settings menu
+    // The following services are hidden in read-only mode (for moderators or admin in moderator view).
+    // "Archivio News" is EXCLUDED from this rule, making it visible.
+    const readOnlyHiddenServices = ['commentAnalysis'];
+    if (isReadOnly && readOnlyHiddenServices.includes(service.id)) {
+        return true;
+    }
+    return false;
+  };
+
   return (
     <div className="min-h-screen text-gray-800">
       <header style={{ backgroundColor: 'var(--c-primary)' }} className="text-white shadow-md sticky top-0 z-40">
@@ -273,9 +291,7 @@ const App: React.FC = () => {
                         <div className={`menu-panel w-60 ${openMenu === 'utility' ? 'open' : ''}`}>
                             <div className="p-2 space-y-1">
                             {utilityServices.map((service, index) => {
-                                if (service.id === 'userManagement') return null;
-                                if (service.id === 'commentAnalysis' && isReadOnly) return null;
-                                if (service.id === 'newsArchive' && isReadOnly) return null;
+                                if (isUtilityHidden(service)) return null;
                                 return (
                                     <MenuItem key={service.id} onClick={() => handleViewAndCloseMenu(service.id)} style={{ animationDelay: `${index * 30}ms`}}>
                                         <service.icon className="h-5 w-5 text-gray-500"/>
@@ -417,9 +433,7 @@ const App: React.FC = () => {
                                     {mobileSubMenu === 'utility' && (
                                         <div className="pl-8 pt-1 pb-1 space-y-1">
                                             {utilityServices.map(service => {
-                                                if (service.id === 'userManagement') return null;
-                                                if (service.id === 'commentAnalysis' && isReadOnly) return null;
-                                                if (service.id === 'newsArchive' && isReadOnly) return null;
+                                                if (isUtilityHidden(service)) return null;
                                                 return (
                                                     <MenuItem key={service.id} onClick={() => handleViewAndCloseMenu(service.id)} className={`${service.id === view ? 'bg-gray-100' : ''}`}>
                                                         <service.icon className="h-5 w-5 text-gray-500" />

@@ -1,7 +1,9 @@
 
 
-import React, { useState, useCallback } from 'react';
-import { NewsArticle, UserProfile } from '../types';
+
+
+import React, { useState, useCallback, useEffect } from 'react';
+import { NewsArticle, UserProfile } from './types';
 import { PlusCircle, Edit, Trash2, Star, FilePlus2, AlertTriangle, ChevronLeft, ChevronRight } from 'lucide-react';
 import NewsModal from './NewsModal';
 import { useData } from '../contexts/DataContext';
@@ -30,15 +32,21 @@ const NewsSection: React.FC<NewsSectionProps> = ({ currentUser, isReadOnly, onAr
     const regularNews = allVisibleNews.filter(a => !a.isFeatured);
     const regularNewsToShow = regularNews.slice(0, Math.max(0, 8 - featuredNews.length));
 
-    const handlePrevFeatured = (e: React.MouseEvent) => {
-        e.stopPropagation();
-        setFeaturedIndex(prev => (prev - 1 + featuredNews.length) % featuredNews.length);
-    };
+    const handleNextFeatured = useCallback(() => {
+        setFeaturedIndex(prev => (prev + 1) % (featuredNews.length || 1));
+    }, [featuredNews.length]);
 
-    const handleNextFeatured = (e: React.MouseEvent) => {
-        e.stopPropagation();
-        setFeaturedIndex(prev => (prev + 1) % featuredNews.length);
-    };
+    const handlePrevFeatured = useCallback(() => {
+        setFeaturedIndex(prev => (prev - 1 + (featuredNews.length || 1)) % (featuredNews.length || 1));
+    }, [featuredNews.length]);
+
+    useEffect(() => {
+        if (featuredNews.length > 1) {
+            const timer = setInterval(handleNextFeatured, 6000); // Auto-scroll every 6 seconds
+            return () => clearInterval(timer);
+        }
+    }, [featuredNews.length, handleNextFeatured]);
+
 
     const currentFeaturedArticle = featuredNews.length > 0 ? featuredNews[featuredIndex] : null;
 
@@ -138,18 +146,8 @@ const NewsSection: React.FC<NewsSectionProps> = ({ currentUser, isReadOnly, onAr
             
             {featuredNews.length > 0 && (
                 <div className="relative group mb-4 border-b pb-4">
-                    {featuredNews.length > 1 && (
-                        <>
-                             <button onClick={handlePrevFeatured} className="absolute left-2 top-1/2 -translate-y-1/2 z-10 bg-black/30 text-white p-2 rounded-full hover:bg-black/50 transition opacity-0 group-hover:opacity-100">
-                                <ChevronLeft />
-                            </button>
-                            <button onClick={handleNextFeatured} className="absolute right-2 top-1/2 -translate-y-1/2 z-10 bg-black/30 text-white p-2 rounded-full hover:bg-black/50 transition opacity-0 group-hover:opacity-100">
-                                <ChevronRight />
-                            </button>
-                        </>
-                    )}
                     {currentFeaturedArticle && (
-                        <div onClick={() => onArticleClick(currentFeaturedArticle)} className="cursor-pointer rounded-lg overflow-hidden border border-yellow-300 bg-yellow-50/50">
+                        <div onClick={() => onArticleClick(currentFeaturedArticle)} className="relative cursor-pointer rounded-lg overflow-hidden border border-yellow-300 bg-yellow-50/50">
                             <img src={currentFeaturedArticle.imageUrl || 'https://images.unsplash.com/photo-1517694712202-14dd9538aa97?q=80&w=2070&auto=format&fit=crop'} alt={currentFeaturedArticle.title} className="w-full h-56 object-cover" />
                             <div className="p-4">
                                 <h4 className="font-bold text-lg text-gray-800 flex items-center gap-2">
@@ -162,6 +160,16 @@ const NewsSection: React.FC<NewsSectionProps> = ({ currentUser, isReadOnly, onAr
                                 </div>
                             </div>
                         </div>
+                    )}
+                     {featuredNews.length > 1 && (
+                        <>
+                             <button onClick={(e) => { e.stopPropagation(); handlePrevFeatured(); }} className="absolute left-2 top-1/2 -translate-y-1/2 z-10 bg-black/30 text-white p-2 rounded-full hover:bg-black/50 transition opacity-0 group-hover:opacity-100">
+                                <ChevronLeft />
+                            </button>
+                            <button onClick={(e) => { e.stopPropagation(); handleNextFeatured(); }} className="absolute right-2 top-1/2 -translate-y-1/2 z-10 bg-black/30 text-white p-2 rounded-full hover:bg-black/50 transition opacity-0 group-hover:opacity-100">
+                                <ChevronRight />
+                            </button>
+                        </>
                     )}
                 </div>
             )}

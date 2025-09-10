@@ -1,52 +1,47 @@
-import React from 'react';
-import { OnlineUser, UserProfile, Ticket, Procedura, Guideline, NewsArticle, UsefulContent, StoredFile, NavigationTarget } from '../types';
+import React, { useMemo } from 'react';
+import { OnlineUser, UserProfile, NotificationItem, NavigationTarget, User } from './types';
 import { getAvatar, getAvatarColor } from '../services/avatarRegistry';
-import { Users, ArrowRight, BookText, Archive, ClipboardCheck, Wifi, PauseCircle, Activity, Newspaper, HeartPulse, Bird, BookMarked, Telescope } from 'lucide-react';
+import { Users, ArrowRight, BookText, Wifi, PauseCircle, Activity } from 'lucide-react';
 import { PAUSE_DURATIONS, calculateEndTime } from './team-breaks/helpers';
 import { useData } from '../contexts/DataContext';
+import { serviceMap } from '../services/registry';
+import { timeAgo } from './utils/time';
 
-const FallbackAvatar: React.FC<{ authorName: string }> = ({ authorName }) => {
+const AuthorAvatar: React.FC<{ authorName: string | null; usersMap: Map<string, User> }> = ({ authorName, usersMap }) => {
+    if (!authorName) return null;
+    
+    const user = usersMap.get(authorName);
+    if (user && user.avatar) {
+        const AvatarIcon = getAvatar(user.avatar);
+        const color = getAvatarColor(user.avatar);
+        return (
+             <div className="h-5 w-5 rounded-full flex items-center justify-center bg-gray-100">
+                <AvatarIcon className="h-4 w-4" style={{ color }} />
+            </div>
+        );
+    }
+    
     const initial = authorName.charAt(0).toUpperCase();
     const colorIndex = (authorName.charCodeAt(0) || 0) % 5;
     const colors = [
-        'bg-red-200 text-red-800',
-        'bg-blue-200 text-blue-800',
-        'bg-green-200 text-green-800',
-        'bg-yellow-200 text-yellow-800',
-        'bg-purple-200 text-purple-800',
+        'bg-red-200 text-red-800', 'bg-blue-200 text-blue-800', 'bg-green-200 text-green-800',
+        'bg-yellow-200 text-yellow-800', 'bg-purple-200 text-purple-800',
     ];
-
-    return (
-        <div className={`w-5 h-5 rounded-full flex-shrink-0 flex items-center justify-center font-bold text-xs ${colors[colorIndex]}`}>
-            {initial}
-        </div>
-    );
+    return <div className={`w-5 h-5 rounded-full flex-shrink-0 flex items-center justify-center font-bold text-xs ${colors[colorIndex]}`}>{initial}</div>;
 };
-
-interface LatestItemResult<T> {
-    item: T;
-    categoryName?: string;
-}
 
 interface InfoWidgetsProps {
     onlineUsers: OnlineUser[];
-    latestUpdates: {
-        tickets: LatestItemResult<Ticket> | null;
-        procedures: LatestItemResult<Procedura> | null;
-        guidelines: LatestItemResult<Guideline> | null;
-        sanita: LatestItemResult<UsefulContent> | null;
-        documentArchive: LatestItemResult<StoredFile | UsefulContent> | null;
-        vademecum: LatestItemResult<UsefulContent> | null;
-        belvedere: LatestItemResult<Ticket | UsefulContent> | null;
-        newsArchive: LatestItemResult<NewsArticle> | null;
-    };
+    recentActivity: NotificationItem[];
     currentUser: UserProfile | null;
-    handleNavigate: (target: NavigationTarget) => void;
+    handleNavigate: (target: NavigationTarget | NotificationItem) => void;
 }
 
-const InfoWidgets: React.FC<InfoWidgetsProps> = ({ onlineUsers, latestUpdates, currentUser, handleNavigate }) => {
-    const { servicesData } = useData();
+const InfoWidgets: React.FC<InfoWidgetsProps> = ({ onlineUsers, recentActivity, currentUser, handleNavigate }) => {
+    const { servicesData, appData } = useData();
     const now = new Date();
+    
+    const usersMap = useMemo(() => new Map(Object.values(appData.users || {}).map((u: User) => [u.name, u])), [appData.users]);
 
     const sortedOnlineUsers = [...onlineUsers].sort((a, b) => {
         if (a.name === currentUser?.name) return -1;
@@ -56,7 +51,6 @@ const InfoWidgets: React.FC<InfoWidgetsProps> = ({ onlineUsers, latestUpdates, c
     
     const onBreakUsers = React.useMemo(() => {
         const allBreaks = servicesData['teamBreaks-primo-livello']?.data || [];
-
         return allBreaks.flatMap((data: any) =>
             Object.entries(data.actual_start_times || {})
                 .map(([type, startTime]: [string, any]) => {
@@ -74,7 +68,6 @@ const InfoWidgets: React.FC<InfoWidgetsProps> = ({ onlineUsers, latestUpdates, c
                 })
         ).filter((v): v is { name: string, avatar: string, sessionId: string, breakEndTime: Date } => !!v);
     }, [servicesData, now]);
-
 
     const renderTime = (date: Date) => date.toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' });
 
@@ -142,61 +135,31 @@ const InfoWidgets: React.FC<InfoWidgetsProps> = ({ onlineUsers, latestUpdates, c
                     <span>Attività Recente</span>
                 </h3>
                 <div className="space-y-2">
-                    {Object.values(latestUpdates).every(item => item === null) && (
-                         <p className="text-sm text-gray-500">Nessuna attività da mostrare.</p>
-                    )}
-                    {Object.entries(latestUpdates).map(([key, result]) => {
-                        if (!result) return null;
-
-                        const { item, categoryName } = result;
-                        
-                        const details = {
-                            tickets: { icon: Archive, label: 'Ticket', serviceId: 'tickets', text: (item as Ticket).argomento },
-                            procedures: { icon: ClipboardCheck, label: 'Procedura', serviceId: 'procedures', text: (item as Procedura).casistica },
-                            guidelines: { icon: ClipboardCheck, label: 'Linea Guida', serviceId: 'guidelines', text: (item as Guideline).casistica },
-                            sanita: { icon: HeartPulse, label: 'Tematica Sanitaria', serviceId: 'sanita', text: (item as UsefulContent).casistica },
-                            documentArchive: { icon: Bird, label: 'Falco Pellegrino', serviceId: 'documentArchive', text: (item as StoredFile).name || (item as UsefulContent).casistica, author: (item as StoredFile).author },
-                            vademecum: { icon: BookMarked, label: 'Vademecum', serviceId: 'vademecum', text: (item as UsefulContent).casistica },
-                            belvedere: { icon: Telescope, label: 'Belvedere', serviceId: 'belvedere', text: (item as UsefulContent).casistica || (item as Ticket).argomento },
-                            newsArchive: { icon: Newspaper, label: 'News', serviceId: 'newsArchive', text: (item as NewsArticle).title, author: (item as NewsArticle).author },
-                        }[key];
-                        
-                        if (!details) return null;
-
-                        const onlineAuthor = details.author ? onlineUsers.find(u => u.name === details.author) : null;
-                        const AuthorAvatar = onlineAuthor ? getAvatar(onlineAuthor.avatar) : null;
-                        const avatarColor = onlineAuthor ? getAvatarColor(onlineAuthor.avatar) : '';
-                        
-                        return (
-                            <button onClick={() => handleNavigate({ serviceId: details.serviceId, categoryName, itemId: item.id })} key={key} className="w-full group flex items-center justify-between p-2 hover:bg-gray-50 rounded-lg text-left">
-                                <div className="flex items-center gap-3 overflow-hidden">
+                    {recentActivity.length > 0 ? (
+                        recentActivity.map(notification => {
+                            const ServiceIcon = serviceMap[notification.serviceId]?.icon || BookText;
+                            
+                            return (
+                                <button onClick={() => handleNavigate(notification)} key={notification.id} className="w-full group flex items-start justify-between p-2 hover:bg-gray-50 rounded-lg text-left gap-3">
                                     <div className="flex-shrink-0 h-8 w-8 rounded-lg bg-gray-100 flex items-center justify-center">
-                                       <details.icon className={`h-5 w-5 text-gray-500`} />
+                                       <ServiceIcon className="h-5 w-5 text-gray-500" />
                                     </div>
                                     <div className="flex-grow overflow-hidden">
-                                        <div className="font-semibold text-sm text-gray-800 truncate">{details.text}</div>
-                                        <div className="text-xs text-gray-500 flex items-center gap-1.5">
-                                            <span>{details.label}</span>
-                                            {details.author && (
-                                                <>
-                                                  <span>di</span>
-                                                   {AuthorAvatar ? (
-                                                      <div className="h-5 w-5 rounded-full flex items-center justify-center bg-gray-100">
-                                                        <AuthorAvatar className="h-4 w-4" style={{color: avatarColor}}/>
-                                                      </div>
-                                                   ) : (
-                                                       <FallbackAvatar authorName={details.author} />
-                                                   )}
-                                                  <span className="font-medium">{details.author}</span>
-                                                </>
-                                            )}
+                                        <p className="text-sm text-gray-800 break-words">{notification.message}</p>
+                                        <div className="flex items-center gap-1.5 text-xs text-gray-500 mt-1">
+                                            <AuthorAvatar authorName={notification.author} usersMap={usersMap} />
+                                            <span className="font-medium">{notification.author || 'Sistema'}</span>
+                                            <span>·</span>
+                                            <span>{timeAgo(notification.timestamp)}</span>
                                         </div>
                                     </div>
-                                </div>
-                                <ArrowRight className="h-5 w-5 text-gray-400 group-hover:text-[var(--c-primary-light)] transition-colors flex-shrink-0 ml-2" />
-                            </button>
-                        );
-                    })}
+                                    <ArrowRight className="h-5 w-5 text-gray-400 group-hover:text-[var(--c-primary-light)] transition-colors flex-shrink-0 ml-2 mt-1" />
+                                </button>
+                            );
+                        })
+                    ) : (
+                        <p className="text-sm text-gray-500">Nessuna attività da mostrare.</p>
+                    )}
                 </div>
             </div>
         </>

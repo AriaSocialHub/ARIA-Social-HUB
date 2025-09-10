@@ -1,28 +1,11 @@
 import React, { useState, useMemo, useCallback, useEffect } from 'react';
-import { NewsArticle, UserProfile, NavigationTarget } from './types';
+import { NewsArticle, User, UserProfile, NavigationTarget } from './types';
 import { useData } from './contexts/DataContext';
 import { Search, FileText, Edit, Trash2, PlusCircle, Star, AlertTriangle, FileUp, Eye, EyeOff } from 'lucide-react';
 import NewsModal from './components/NewsModal';
 import NewsDetailModal from './components/NewsDetailModal';
 import FeaturedSwapModal from './components/FeaturedSwapModal';
-
-const AuthorAvatar: React.FC<{ authorName: string }> = ({ authorName }) => {
-    const initial = authorName.charAt(0).toUpperCase();
-    const colorIndex = (authorName.charCodeAt(0) || 0) % 5;
-    const colors = [
-        'bg-red-200 text-red-800',
-        'bg-blue-200 text-blue-800',
-        'bg-green-200 text-green-800',
-        'bg-yellow-200 text-yellow-800',
-        'bg-purple-200 text-purple-800',
-    ];
-
-    return (
-        <div className={`w-10 h-10 rounded-full flex-shrink-0 flex items-center justify-center font-bold text-sm ${colors[colorIndex]}`}>
-            {initial}
-        </div>
-    );
-};
+import { getAvatar, getAvatarColor } from './services/avatarRegistry';
 
 const ArticleImage: React.FC<{ src: string | null; alt: string; className: string }> = ({ src, alt, className }) => {
     const [hasError, setHasError] = useState(false);
@@ -63,7 +46,7 @@ interface NewsArchiveAppProps {
 }
 
 const NewsArchiveApp: React.FC<NewsArchiveAppProps> = ({ serviceId, currentUser, isReadOnly, navigationTarget, onNavigationComplete, onUploadClick }) => {
-    const { servicesData, saveServiceData } = useData();
+    const { servicesData, saveServiceData, appData } = useData();
     const [searchTerm, setSearchTerm] = useState('');
     const [modalState, setModalState] = useState<{ type: 'edit' | 'detail' | null, article: NewsArticle | null }>({ type: null, article: null });
     const [articleToDelete, setArticleToDelete] = useState<NewsArticle | null>(null);
@@ -71,6 +54,36 @@ const NewsArchiveApp: React.FC<NewsArchiveAppProps> = ({ serviceId, currentUser,
     const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
     const [bulkDeleteConfirm, setBulkDeleteConfirm] = useState(false);
     const [swapFeaturedState, setSwapFeaturedState] = useState<{ newArticle: NewsArticle, existingFeatured: NewsArticle[] } | null>(null);
+
+    const usersMap = useMemo(() => new Map(Object.values(appData.users || {}).map((u: User) => [u.name, u])), [appData.users]);
+
+    const AuthorAvatar: React.FC<{ authorName: string | null }> = ({ authorName }) => {
+        if (!authorName) return null;
+        const user = usersMap.get(authorName);
+
+        if (user && user.avatar) {
+            const AvatarIcon = getAvatar(user.avatar);
+            const color = getAvatarColor(user.avatar);
+            return (
+                <div className="w-10 h-10 rounded-full flex-shrink-0 flex items-center justify-center bg-gray-100" title={authorName}>
+                    <AvatarIcon className="w-6 h-6" style={{ color }} />
+                </div>
+            );
+        }
+        
+        const initial = authorName.charAt(0).toUpperCase();
+        const colorIndex = (authorName.charCodeAt(0) || 0) % 5;
+        const colors = [
+            'bg-red-200 text-red-800', 'bg-blue-200 text-blue-800', 'bg-green-200 text-green-800',
+            'bg-yellow-200 text-yellow-800', 'bg-purple-200 text-purple-800',
+        ];
+
+        return (
+            <div className={`w-10 h-10 rounded-full flex-shrink-0 flex items-center justify-center font-bold text-sm ${colors[colorIndex]}`} title={authorName}>
+                {initial}
+            </div>
+        );
+    };
 
 
     const allNewsData: NewsArticle[] = servicesData[serviceId]?.data || [];

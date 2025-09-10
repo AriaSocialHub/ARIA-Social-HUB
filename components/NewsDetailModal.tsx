@@ -1,16 +1,8 @@
-import React, { useRef, useEffect, useState } from 'react';
-import { NewsArticle } from '../types';
+import React, { useRef, useEffect, useState, useMemo } from 'react';
+import { NewsArticle, User } from '../types';
 import { X, Edit, Trash2, FileText, Star } from 'lucide-react';
-
-const AuthorAvatar: React.FC<{ authorName: string }> = ({ authorName }) => {
-    const initial = authorName.charAt(0).toUpperCase();
-    const colorIndex = (authorName.charCodeAt(0) || 0) % 5;
-    const colors = [
-        'bg-red-200 text-red-800', 'bg-blue-200 text-blue-800', 'bg-green-200 text-green-800',
-        'bg-yellow-200 text-yellow-800', 'bg-purple-200 text-purple-800',
-    ];
-    return <div className={`w-10 h-10 rounded-full flex-shrink-0 flex items-center justify-center font-bold text-sm ${colors[colorIndex]}`}>{initial}</div>;
-};
+import { useData } from '../contexts/DataContext';
+import { getAvatar, getAvatarColor } from '../services/avatarRegistry';
 
 const ArticleImage: React.FC<{ src: string | null; alt: string; className: string }> = ({ src, alt, className }) => {
     const [hasError, setHasError] = useState(false);
@@ -31,6 +23,32 @@ interface NewsDetailModalProps {
 
 const NewsDetailModal: React.FC<NewsDetailModalProps> = ({ article, isReadOnly, onClose, onEdit, onDelete }) => {
     const modalRef = useRef<HTMLDivElement>(null);
+    const { appData } = useData();
+
+    const usersMap = useMemo(() => new Map(Object.values(appData.users || {}).map((u: User) => [u.name, u])), [appData.users]);
+    
+    const AuthorAvatar: React.FC<{ authorName: string | null }> = ({ authorName }) => {
+        if (!authorName) return null;
+        const user = usersMap.get(authorName);
+        if (user && user.avatar) {
+            const AvatarIcon = getAvatar(user.avatar);
+            const color = getAvatarColor(user.avatar);
+            return (
+                <div className="w-10 h-10 rounded-full flex-shrink-0 flex items-center justify-center bg-gray-100" title={authorName}>
+                    <AvatarIcon className="w-6 h-6" style={{ color }} />
+                </div>
+            );
+        }
+        
+        const initial = authorName.charAt(0).toUpperCase();
+        const colorIndex = (authorName.charCodeAt(0) || 0) % 5;
+        const colors = [
+            'bg-red-200 text-red-800', 'bg-blue-200 text-blue-800', 'bg-green-200 text-green-800',
+            'bg-yellow-200 text-yellow-800', 'bg-purple-200 text-purple-800',
+        ];
+        return <div className={`w-10 h-10 rounded-full flex-shrink-0 flex items-center justify-center font-bold text-sm ${colors[colorIndex]}`} title={authorName}>{initial}</div>;
+    };
+
 
     useEffect(() => {
         const handleOutsideClick = (event: MouseEvent) => {
