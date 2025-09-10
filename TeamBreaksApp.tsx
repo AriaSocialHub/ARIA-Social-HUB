@@ -1,5 +1,6 @@
 
 
+
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { PauseData, AllPauseData, OnlineUser, UserProfile } from './types';
 import { UserPlus, Filter, Trash2, Coffee, AlertTriangle } from 'lucide-react';
@@ -31,6 +32,7 @@ const TeamBreaksApp: React.FC<TeamBreaksAppProps> = ({ serviceId, isReadOnly, on
     const [isAddModalOpen, setAddModalOpen] = useState(false);
     const [deleteRequest, setDeleteRequest] = useState<{id: string, name: string} | null>(null);
     const [filter, setFilter] = useState('tutti');
+    const [isDeleteAllConfirmOpen, setDeleteAllConfirmOpen] = useState(false);
     
     const canAddAndModify = useMemo(() => {
         if (!currentUser) {
@@ -46,6 +48,11 @@ const TeamBreaksApp: React.FC<TeamBreaksAppProps> = ({ serviceId, isReadOnly, on
         if (currentUser) {
             saveServiceData(serviceId, newData, currentUser.name);
         }
+    };
+
+    const handleDeleteAllPauses = () => {
+        handleSaveData([]);
+        setDeleteAllConfirmOpen(false);
     };
 
     const handleAddPause = (formData: Omit<PauseData, 'id' | 'actual_start_times' | 'creatorAvatar' | 'creatorName'>) => {
@@ -143,9 +150,16 @@ const TeamBreaksApp: React.FC<TeamBreaksAppProps> = ({ serviceId, isReadOnly, on
                      <h1 className="text-3xl font-bold" style={{color: 'var(--c-text-heading)'}}>Gestione Pause</h1>
                      <div className="mt-2 text-sm text-gray-500 font-medium bg-white/60 px-3 py-1 rounded-full w-fit">{formatDateTime(now)}</div>
                 </div>
-                {canAddAndModify && 
-                    <button onClick={() => setAddModalOpen(true)} className="btn btn-primary"><UserPlus className="w-5 h-5"/> Aggiungi Pausa</button>
-                }
+                <div className="flex items-center gap-2">
+                    {!isReadOnly && currentUser?.accessLevel === 'admin' && pauseData.length > 0 &&
+                        <button onClick={() => setDeleteAllConfirmOpen(true)} className="btn bg-red-600 text-white hover:bg-red-700">
+                            <Trash2 className="w-5 h-5"/> Elimina Tutto
+                        </button>
+                    }
+                    {canAddAndModify && 
+                        <button onClick={() => setAddModalOpen(true)} className="btn btn-primary"><UserPlus className="w-5 h-5"/> Aggiungi Pausa</button>
+                    }
+                </div>
             </div>
             
             <div className="card">
@@ -217,6 +231,20 @@ const TeamBreaksApp: React.FC<TeamBreaksAppProps> = ({ serviceId, isReadOnly, on
                         <div className="flex justify-center gap-4">
                            <button onClick={() => setDeleteRequest(null)} className="btn btn-secondary">Annulla</button>
                            <button onClick={() => handleDeleteOperator(deleteRequest.id)} className="btn bg-red-600 hover:bg-red-700 text-white"><Trash2 className="w-5 h-5"/> Elimina</button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {isDeleteAllConfirmOpen && (
+                <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4" onClick={() => setDeleteAllConfirmOpen(false)}>
+                    <div className="bg-white rounded-lg shadow-xl p-6 w-full max-w-sm text-center" onClick={e => e.stopPropagation()}>
+                        <AlertTriangle size={48} className="text-red-500 mx-auto mb-4" />
+                        <h2 className="text-2xl font-bold text-gray-800 mb-2">Sei sicuro?</h2>
+                        <p className="text-gray-600 mb-6">Stai per eliminare <strong>tutte le pause</strong> inserite. L'azione è irreversibile.</p>
+                        <div className="flex justify-center gap-4">
+                            <button onClick={() => setDeleteAllConfirmOpen(false)} className="btn btn-secondary">Annulla</button>
+                            <button onClick={handleDeleteAllPauses} className="btn bg-red-600 hover:bg-red-700 text-white"><Trash2 className="w-5 h-5"/> Elimina Tutto</button>
                         </div>
                     </div>
                 </div>

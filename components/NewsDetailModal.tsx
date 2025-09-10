@@ -6,11 +6,26 @@ import { getAvatar, getAvatarColor } from '../services/avatarRegistry';
 
 const ArticleImage: React.FC<{ src: string | null; alt: string; className: string }> = ({ src, alt, className }) => {
     const [hasError, setHasError] = useState(false);
-    useEffect(() => { setHasError(false); }, [src]);
-    if (!src || hasError) {
-        return <div className={`${className} bg-gray-100 flex items-center justify-center`}><FileText className="w-16 h-16 text-gray-300" /></div>;
-    }
-    return <img src={src} alt={alt} className={className} onError={() => setHasError(true)} />;
+
+    useEffect(() => {
+        setHasError(false);
+    }, [src]);
+
+    const placeholderUrl = 'https://images.unsplash.com/photo-1517694712202-14dd9538aa97?q=80&w=2070&auto=format&fit=crop';
+    const finalSrc = !src || hasError ? placeholderUrl : src;
+
+    return (
+        <img
+            src={finalSrc}
+            alt={alt}
+            className={className}
+            onError={() => {
+                if (src) {
+                    setHasError(true);
+                }
+            }}
+        />
+    );
 };
 
 interface NewsDetailModalProps {

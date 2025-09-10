@@ -9,6 +9,7 @@ interface FileUploadModalProps {
 
 const determineCategory = (mimeType: string, fileName: string): StoredFile['category'] => {
     const lowerFileName = fileName.toLowerCase();
+    if (mimeType.startsWith('image/')) return 'Image';
     if (mimeType === 'application/pdf' || lowerFileName.endsWith('.pdf')) return 'PDF';
     if (mimeType.includes('word') || lowerFileName.endsWith('.docx') || lowerFileName.endsWith('.doc')) return 'Document';
     if (mimeType.includes('spreadsheet') || mimeType.includes('excel') || lowerFileName.endsWith('.xlsx') || lowerFileName.endsWith('.xls')) return 'Spreadsheet';
@@ -105,6 +106,7 @@ const FileUploadModal: React.FC<FileUploadModalProps> = ({ onClose, onSave }) =>
                         <div>
                             <label htmlFor="category" className="block text-sm font-medium text-gray-700 mb-1">Categoria</label>
                             <select id="category" value={category} onChange={(e) => setCategory(e.target.value as StoredFile['category'])} className="form-input" disabled={isProcessing}>
+                                <option value="Image">Immagine</option>
                                 <option value="PDF">PDF</option>
                                 <option value="Document">Documento (Word)</option>
                                 <option value="Spreadsheet">Foglio di calcolo (Excel)</option>

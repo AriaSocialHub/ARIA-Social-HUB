@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { CommentPost, CommentDataPoint } from '../../types';
-import { btnPrimary, btnSecondary, card, calculateAllMetrics, getTrendInfo } from './helpers';
+import { btnPrimary, btnSecondary, card, calculateAllMetrics, getTrendInfo, getPlatformIcon } from './helpers';
 import MetricCard from './MetricCard';
 import VelocityChart from './VelocityChart';
 import DataPointModal from './DataPointModal';
@@ -44,7 +44,7 @@ const PostDetailView: React.FC<{ post: CommentPost; onBack: () => void; onUpdate
                 <div className="flex justify-between items-start">
                     <div>
                         <h2 className="text-2xl font-bold">{post.name}</h2>
-                        <p className="text-gray-500">{post.platform} - Pubblicato il {new Date(post.publicationDate).toLocaleString('it-IT')}</p>
+                        <p className="text-gray-500 flex items-center gap-2">{getPlatformIcon(post.platform)} {post.platform} - Pubblicato il {new Date(post.publicationDate).toLocaleString('it-IT')}</p>
                     </div>
                     {post.correlationTag && <div className="flex items-center gap-2 text-sm bg-purple-100 text-purple-700 font-semibold px-3 py-1 rounded-full"><Tag className="w-4 h-4" /> {post.correlationTag}</div>}
                 </div>

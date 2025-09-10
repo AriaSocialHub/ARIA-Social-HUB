@@ -27,7 +27,7 @@ const ManualTicketModal: React.FC<ManualTicketModalProps> = ({ ticket, onSave, o
             const now = new Date();
             const today = now.toISOString().split('T')[0];
             const currentTime = now.toTimeString().split(' ')[0].substring(0, 5);
-            setFormData({ piattaforma: 'Facebook Pubblico', azione_inoltro: '', azione_principale: null, soglia: '' });
+            setFormData({ piattaforma: 'Facebook Pubblico', azione_inoltro: '', azione_principale: null, soglia: '', risoluzione_ticket: '', risposta: '' });
             setDateDomanda({ date: today, time: currentTime });
             setDateGestione({ date: '', time: '' });
         }
@@ -59,6 +59,16 @@ const ManualTicketModal: React.FC<ManualTicketModalProps> = ({ ticket, onSave, o
             alert('Data e ora della domanda sono obbligatori.');
             return;
         }
+        
+        if (!finalTicket.risoluzione_ticket?.trim()) {
+            alert('Il campo "Risoluzione Ticket" è obbligatorio.');
+            return;
+        }
+
+        if (finalTicket.azione_principale === 'Risposto' && !finalTicket.risposta?.trim()) {
+            alert('Il campo "Risposta" è obbligatorio quando l\'azione è "Risposto".');
+            return;
+        }
 
         if (!finalTicket.azione_principale) {
             alert('Selezionare un\'azione principale obbligatoria.');
@@ -82,6 +92,7 @@ const ManualTicketModal: React.FC<ManualTicketModalProps> = ({ ticket, onSave, o
                         <div><label htmlFor="nome_utente" className={formLabelClasses}>Nome Utente</label><input type="text" id="nome_utente" name="nome_utente" value={formData.nome_utente || ''} onChange={handleChange} required className={formInputClasses}/></div>
                         
                         <div className="col-span-full"><label htmlFor="testo_contenuto" className={formLabelClasses}>Testo Commento/Messaggio</label><textarea id="testo_contenuto" name="testo_contenuto" value={formData.testo_contenuto || ''} onChange={handleChange} required rows={3} className={formInputClasses}></textarea></div>
+                        <div className="col-span-full"><label htmlFor="risoluzione_ticket" className={formLabelClasses}>Risoluzione Ticket</label><textarea id="risoluzione_ticket" name="risoluzione_ticket" value={formData.risoluzione_ticket || ''} onChange={handleChange} required rows={3} className={formInputClasses}></textarea></div>
 
                         <div><label htmlFor="data_domanda_date" className={formLabelClasses}>Data Domanda</label><input type="date" id="data_domanda_date" value={dateDomanda.date} onChange={e => setDateDomanda(p => ({...p, date: e.target.value}))} required className={formInputClasses}/></div>
                         <div><label htmlFor="data_domanda_time" className={formLabelClasses}>Ora Domanda</label><input type="time" id="data_domanda_time" value={dateDomanda.time} onChange={e => setDateDomanda(p => ({...p, time: e.target.value}))} required className={formInputClasses}/></div>
@@ -118,6 +129,13 @@ const ManualTicketModal: React.FC<ManualTicketModalProps> = ({ ticket, onSave, o
                             </div>
                         </fieldset>
                         
+                         {formData.azione_principale === 'Risposto' && (
+                            <div className="col-span-full">
+                                <label htmlFor="risposta" className={formLabelClasses}>Risposta</label>
+                                <textarea id="risposta" name="risposta" value={formData.risposta || ''} onChange={handleChange} required rows={3} className={formInputClasses}></textarea>
+                            </div>
+                        )}
+
                         <fieldset className="col-span-full border border-gray-200 p-4 rounded-md"><legend className="text-sm font-medium text-gray-700 px-2">Azione di Inoltro (Opzionale)</legend><div className="flex flex-wrap gap-x-6 gap-y-3 pt-2">{['', 'Inoltrato al BO', 'Rilasciato al FO'].map(val => (<div key={val} className="flex items-center"><input type="radio" id={`azione_inoltro_${val || 'nessuna'}`} name="azione_inoltro" value={val} checked={formData.azione_inoltro === val} onChange={handleChange} className={radioInputClasses}/><label htmlFor={`azione_inoltro_${val || 'nessuna'}`} className="ml-3 block text-sm text-gray-900">{val || 'Nessuna'}</label></div>))}</div ></fieldset>
 
                     </div>

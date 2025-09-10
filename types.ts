@@ -1,5 +1,6 @@
 
 
+
 import React from 'react';
 
 export interface Service<T> {
@@ -67,7 +68,7 @@ export interface StoredFile {
   createdAt: string; // ISO
   author: string;
   description?: string;
-  category?: 'PDF' | 'Document' | 'Spreadsheet' | 'Presentation' | 'Other';
+  category?: 'PDF' | 'Document' | 'Spreadsheet' | 'Presentation' | 'Image' | 'Other';
 }
 
 export type CategorizedFiles = Record<string, StoredFile[]>;
@@ -185,6 +186,8 @@ export interface ManualTicket {
   piattaforma: string;
   nome_utente: string;
   testo_contenuto: string;
+  risoluzione_ticket: string;
+  risposta?: string | null;
   data_domanda: string; // Combined ISO format
   data_gestione: string | null; // Combined ISO format
   moderatore: string | null;

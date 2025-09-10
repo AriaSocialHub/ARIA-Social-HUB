@@ -1,12 +1,51 @@
 import React, { useEffect, useRef } from 'react';
 import { CommentPost, CommentDataPoint } from '../../types';
-import { TrendingUp, TrendingDown, Minus } from 'lucide-react';
+import { TrendingUp, TrendingDown, Minus, Facebook, Instagram, Linkedin, Twitter, Music as TikTok, Youtube, MessageSquare } from 'lucide-react';
 
 // --- STYLE CONSTANTS ---
 export const btnPrimary = "inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white text-sm font-semibold rounded-md hover:bg-blue-700 transition disabled:opacity-50 disabled:cursor-not-allowed";
 export const btnSecondary = "inline-flex items-center gap-2 px-4 py-2 bg-gray-200 text-gray-800 text-sm font-semibold rounded-md hover:bg-gray-300 transition disabled:opacity-50 disabled:cursor-not-allowed";
 export const formInput = "block w-full px-3 py-2 bg-white text-gray-900 border border-gray-300 rounded-md text-sm shadow-sm placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100";
 export const card = "bg-white p-6 rounded-xl shadow-sm border";
+
+// --- PLATFORM ICONS ---
+// FIX: Changed 'YouTube' to 'Youtube' to match the case from the 'lucide-react' import.
+const iconMap: { [key: string]: React.FC<any> } = { 
+    Facebook, 
+    Instagram, 
+    TikTok, 
+    Linkedin, 
+    X: Twitter, 
+    Youtube, 
+    Altro: MessageSquare 
+};
+// FIX: Changed 'YouTube' to 'Youtube' to match the case from the 'lucide-react' import.
+const iconColorMap: { [key: string]: string } = { 
+    Facebook: '#1877F2', 
+    Instagram: '#E4405F', 
+    TikTok: '#EE1D52', 
+    Linkedin: '#0A66C2', 
+    X: '#000000',
+    Youtube: '#FF0000',
+    Altro: '#6b7280'
+};
+
+export const getPlatformIcon = (platform: string) => {
+    let basePlatform = 'Altro';
+    if (platform.toLowerCase().includes('facebook')) basePlatform = 'Facebook';
+    else if (platform.toLowerCase().includes('instagram')) basePlatform = 'Instagram';
+    else if (platform.toLowerCase().includes('tiktok')) basePlatform = 'TikTok';
+    else if (platform.toLowerCase().includes('linkedin')) basePlatform = 'Linkedin';
+    else if (platform.toLowerCase().startsWith('x')) basePlatform = 'X';
+    // FIX: Changed 'YouTube' to 'Youtube' to match the case from the 'lucide-react' import.
+    else if (platform.toLowerCase().includes('youtube')) basePlatform = 'Youtube';
+
+    const Icon = iconMap[basePlatform];
+    const color = iconColorMap[basePlatform];
+    // FIX: Replaced JSX syntax with React.createElement to resolve potential parsing issues in .ts files.
+    return React.createElement(Icon, { className: "w-5 h-5 flex-shrink-0", style: { color } });
+};
+
 
 // --- METRICS & HELPERS ---
 const EMA_ALPHA = 0.3;

@@ -1,9 +1,11 @@
 
+
+
 import React, { useState, useCallback, useMemo } from 'react';
 import { CommentPost, CommentAnalysisData, UserProfile } from './types';
 import { Search, PlusCircle, Inbox, ClipboardList, Check } from 'lucide-react';
 import { useData } from './contexts/DataContext';
-import { btnPrimary, btnSecondary, formInput } from './components/comment-analysis/helpers';
+import { btnPrimary, btnSecondary, formInput, getPlatformIcon } from './components/comment-analysis/helpers';
 import PostDetailView from './components/comment-analysis/PostDetailView';
 import PostComparisonView from './components/comment-analysis/PostComparisonView';
 import PostModal from './components/comment-analysis/PostModal';
@@ -174,7 +176,7 @@ const CommentAnalysisApp: React.FC<CommentAnalysisAppProps> = ({ isReadOnly, ser
                                 <div className="flex justify-between items-start mb-4">
                                     <div className="flex-1 pr-4">
                                         <h3 className="font-bold text-lg text-gray-800 leading-tight truncate" title={post.name}>{post.name}</h3>
-                                        <p className="text-sm text-gray-500">{post.platform}</p>
+                                        <p className="text-sm text-gray-500 flex items-center gap-1.5">{getPlatformIcon(post.platform)} {post.platform}</p>
                                     </div>
                                     {post.correlationTag && !isComparing && (
                                         <div className="text-xs bg-purple-100 text-purple-700 font-semibold px-2 py-1 rounded-full flex-shrink-0">{post.correlationTag}</div>

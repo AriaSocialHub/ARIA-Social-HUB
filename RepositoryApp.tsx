@@ -1,5 +1,6 @@
 
 
+
 import React, { useState, useMemo, useEffect } from 'react';
 import { StoredFile, User } from './types';
 import { useData } from './contexts/DataContext';
@@ -8,13 +9,14 @@ import FileUploadModal from './components/repository/FileUploadModal';
 import FileListItem from './components/repository/FileListItem';
 import { GoogleGenAI, Type } from '@google/genai';
 
-const TABS = ['Tutti', 'PDF', 'Document', 'Spreadsheet', 'Presentation', 'Other'];
+const TABS = ['Tutti', 'PDF', 'Document', 'Spreadsheet', 'Presentation', 'Image', 'Other'];
 const TAB_LABELS: { [key: string]: string } = {
   'Tutti': 'Tutti',
   'PDF': 'PDF',
   'Document': 'Documenti',
   'Spreadsheet': 'Fogli di calcolo',
   'Presentation': 'Presentazioni',
+  'Image': 'Immagini',
   'Other': 'Altro',
 };
 

@@ -14,22 +14,19 @@ const ArticleImage: React.FC<{ src: string | null; alt: string; className: strin
         setHasError(false);
     }, [src]);
 
-    if (!src || hasError) {
-        return (
-            <div className={`${className} bg-gray-100 flex items-center justify-center`} title="Nessuna immagine">
-                <FileText className="w-16 h-16 text-gray-300" />
-            </div>
-        );
-    }
+    const placeholderUrl = 'https://images.unsplash.com/photo-1517694712202-14dd9538aa97?q=80&w=2070&auto=format&fit=crop';
+    const finalSrc = !src || hasError ? placeholderUrl : src;
 
     return (
         <img
-            src={src}
+            src={finalSrc}
             alt={alt}
             className={className}
             onError={() => {
-                console.warn(`[WARN] Immagine non trovata in archivio al percorso: ${src}`);
-                setHasError(true);
+                if (src) { // only set error if there was a src to begin with
+                    console.warn(`[WARN] Immagine non trovata in archivio al percorso: ${src}`);
+                    setHasError(true);
+                }
             }}
         />
     );
@@ -343,7 +340,7 @@ const NewsArchiveApp: React.FC<NewsArchiveAppProps> = ({ serviceId, currentUser,
                                             <AuthorAvatar authorName={article.author} />
                                             <div>
                                                 <p className="font-semibold text-gray-800">{article.author}</p>
-                                                <p className="text-xs text-gray-500">{new Date(article.createdAt).toLocaleDateString('it-IT', { day: 'numeric', month: 'long', year: 'numeric' })}</p>
+                                                <p className="text-xs text-gray-500">{new Date(article.createdAt).toLocaleString('it-IT', { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</p>
                                             </div>
                                         </div>
                                         <p className="text-gray-700 mt-2 whitespace-pre-wrap line-clamp-3">{article.content}</p>
@@ -415,7 +412,7 @@ const NewsArchiveApp: React.FC<NewsArchiveAppProps> = ({ serviceId, currentUser,
                         </p>
                         <div className="flex justify-center gap-4">
                             <button onClick={() => setBulkDeleteConfirm(false)} className="btn btn-secondary">Annulla</button>
-                            <button onClick={handleBulkDelete} className="btn bg-red-600 hover:bg-red-700 text-white"><Trash2 className="w-5 w-5"/> Elimina</button>
+                            <button onClick={handleBulkDelete} className="btn bg-red-600 hover:bg-red-700 text-white"><Trash2 className="w-5 h-5"/> Elimina</button>
                         </div>
                     </div>
                 </div>
