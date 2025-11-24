@@ -1,7 +1,7 @@
+
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { X, Search, Loader2, FileText } from 'lucide-react';
 import { useData } from '../contexts/DataContext';
-import { GoogleGenAI, Type } from '@google/genai';
 import { serviceMap } from '../services/registry';
 import { NavigationTarget, NotificationItem } from '../types';
 
@@ -110,8 +110,6 @@ const GlobalSearchModal: React.FC<GlobalSearchModalProps> = ({ handleNavigate })
         setError(null);
 
         try {
-            const ai = new GoogleGenAI({ apiKey: process.env.API_KEY! });
-            
             const documentsForSearch = allSearchableData.current.map(item => ({
                 id: item.itemId,
                 serviceId: item.serviceId,
@@ -119,34 +117,23 @@ const GlobalSearchModal: React.FC<GlobalSearchModalProps> = ({ handleNavigate })
                 text: `${item.title} ${item.content}`
             }));
 
-            const response = await ai.models.generateContent({
-                model: 'gemini-2.5-flash',
-                contents: `Basandoti sulla query di ricerca "${query}", trova i file più pertinenti dall'elenco JSON fornito. Restituisci solo un oggetto JSON con una chiave "results" che contenga un array degli oggetti originali completi dei file che corrispondono semanticamente. Includi solo i 5 risultati migliori. Non inventare risultati. Se non ci sono risultati, restituisci un array vuoto. Ecco i dati: ${JSON.stringify(documentsForSearch)}`,
-                config: {
-                    responseMimeType: 'application/json',
-                    responseSchema: {
-                        type: Type.OBJECT,
-                        properties: {
-                            results: {
-                                type: Type.ARRAY,
-                                description: "Un array degli oggetti originali completi che sono semanticamente pertinenti.",
-                                items: {
-                                    type: Type.OBJECT,
-                                    properties: {
-                                        id: { type: Type.STRING },
-                                        serviceId: { type: Type.STRING },
-                                        categoryName: { type: Type.STRING },
-                                        text: { type: Type.STRING }
-                                    }
-                                }
-                            }
-                        },
-                        required: ["results"]
-                    }
-                }
+            const response = await fetch('/api/search', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    query,
+                    documents: documentsForSearch,
+                    mode: 'global'
+                }),
             });
 
-            const parsedResult = JSON.parse(response.text);
+            if (!response.ok) {
+                throw new Error('Search request failed');
+            }
+
+            const parsedResult = await response.json();
             const foundIds = new Set((parsedResult.results || []).map((r: any) => r.id));
             const finalResults = allSearchableData.current.filter(item => foundIds.has(item.itemId));
 

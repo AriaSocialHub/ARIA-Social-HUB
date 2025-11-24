@@ -79,48 +79,50 @@ const NewsDetailModal: React.FC<NewsDetailModalProps> = ({ article, isReadOnly, 
     }, [onClose]);
 
     return (
-        <div className="fixed top-0 left-0 w-full h-full bg-black/60 flex justify-center items-start z-[9999] p-4 pt-12 overflow-y-auto">
-            <div ref={modalRef} className="bg-white rounded-xl shadow-xl w-full max-w-3xl flex flex-col relative mb-12">
-                <div className="relative">
-                    <ArticleImage
-                        src={article.imageUrl}
-                        alt={article.title}
-                        className="w-full h-64 object-cover rounded-t-xl"
-                    />
-                    <button onClick={onClose} className="absolute top-4 right-4 p-2 bg-black/40 text-white rounded-full hover:bg-black/60 transition-colors">
-                        <X className="h-5 w-5" />
-                    </button>
-                </div>
+        <div className="fixed inset-0 z-[9999] bg-black/60 overflow-y-auto">
+            <div className="flex min-h-full items-start justify-center p-4">
+                <div ref={modalRef} className="bg-white rounded-xl shadow-xl w-full max-w-3xl flex flex-col relative my-8">
+                    <div className="relative">
+                        <ArticleImage
+                            src={article.imageUrl}
+                            alt={article.title}
+                            className="w-full h-64 object-cover rounded-t-xl"
+                        />
+                        <button onClick={onClose} className="absolute top-4 right-4 p-2 bg-black/40 text-white rounded-full hover:bg-black/60 transition-colors">
+                            <X className="h-5 w-5" />
+                        </button>
+                    </div>
 
-                <div className="p-8 flex-grow">
-                    <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-3">
-                        {article.title}
-                        {article.isFeatured && <span title="In evidenza"><Star className="h-6 w-6 text-yellow-500 fill-yellow-500" /></span>}
-                    </h1>
+                    <div className="p-8 flex-grow">
+                        <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-3">
+                            {article.title}
+                            {article.isFeatured && <span title="In evidenza"><Star className="h-6 w-6 text-yellow-500 fill-yellow-500" /></span>}
+                        </h1>
 
-                    <div className="flex items-center gap-3 my-4 pb-4 border-b border-gray-100">
-                        <AuthorAvatar authorName={article.author} />
-                        <div>
-                            <p className="font-semibold text-gray-800">{article.author}</p>
-                            <p className="text-sm text-gray-500">{new Date(article.createdAt).toLocaleDateString('it-IT', { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</p>
+                        <div className="flex items-center gap-3 my-4 pb-4 border-b border-gray-100">
+                            <AuthorAvatar authorName={article.author} />
+                            <div>
+                                <p className="font-semibold text-gray-800">{article.author}</p>
+                                <p className="text-sm text-gray-500">{new Date(article.createdAt).toLocaleDateString('it-IT', { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</p>
+                            </div>
                         </div>
+
+                        <p className="text-gray-700 text-base leading-relaxed whitespace-pre-wrap">
+                            {article.content}
+                        </p>
                     </div>
 
-                    <p className="text-gray-700 text-base leading-relaxed whitespace-pre-wrap">
-                        {article.content}
-                    </p>
+                    {!isReadOnly && (
+                        <div className="px-8 py-4 bg-gray-50 flex justify-end gap-3 border-t rounded-b-xl">
+                            <button onClick={() => onEdit(article)} className="btn btn-secondary">
+                                <Edit className="h-4 w-4" /> Modifica
+                            </button>
+                            <button onClick={() => onDelete(article)} className="btn bg-red-100 text-red-700 hover:bg-red-200 border-red-200">
+                                <Trash2 className="h-4 w-4" /> Elimina
+                            </button>
+                        </div>
+                    )}
                 </div>
-
-                {!isReadOnly && (
-                    <div className="px-8 py-4 bg-gray-50 flex justify-end gap-3 border-t rounded-b-xl">
-                        <button onClick={() => onEdit(article)} className="btn btn-secondary">
-                            <Edit className="h-4 w-4" /> Modifica
-                        </button>
-                        <button onClick={() => onDelete(article)} className="btn bg-red-100 text-red-700 hover:bg-red-200 border-red-200">
-                            <Trash2 className="h-4 w-4" /> Elimina
-                        </button>
-                    </div>
-                )}
             </div>
         </div>
     );

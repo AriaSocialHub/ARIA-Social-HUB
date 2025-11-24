@@ -1,13 +1,10 @@
 
-
-
 import React, { useState, useMemo, useEffect } from 'react';
 import { StoredFile, User } from './types';
 import { useData } from './contexts/DataContext';
 import { Search, Plus, Loader2, Database, AlertTriangle, Trash2, X } from 'lucide-react';
 import FileUploadModal from './components/repository/FileUploadModal';
 import FileListItem from './components/repository/FileListItem';
-import { GoogleGenAI, Type } from '@google/genai';
 
 const TABS = ['Tutti', 'PDF', 'Document', 'Spreadsheet', 'Presentation', 'Image', 'Other'];
 const TAB_LABELS: { [key: string]: string } = {
@@ -63,29 +60,25 @@ const RepositoryApp: React.FC<{ serviceId: string; isReadOnly: boolean; currentU
         setIsSearching(true);
         setSearchError(null);
         try {
-            const ai = new GoogleGenAI({ apiKey: process.env.API_KEY! });
             const documentsForSearch = allFiles.map(f => ({ id: f.id, name: f.name, description: f.description }));
             
-            const response = await ai.models.generateContent({
-                model: 'gemini-2.5-flash',
-                contents: `Basandoti sulla query di ricerca "${term}", trova i file più pertinenti. Ecco un elenco di file in formato JSON:\n${JSON.stringify(documentsForSearch)}\nRestituisci solo un oggetto JSON con una chiave "relevant_ids" che contenga un array degli ID dei file che corrispondono semanticamente. Includi solo i risultati migliori.`,
-                config: {
-                    responseMimeType: "application/json",
-                    responseSchema: {
-                        type: Type.OBJECT,
-                        properties: {
-                            relevant_ids: {
-                                type: Type.ARRAY,
-                                description: "Un array degli ID dei file che sono semanticamente pertinenti alla query di ricerca.",
-                                items: { type: Type.STRING }
-                            }
-                        },
-                        required: ["relevant_ids"]
-                    }
-                }
+            const response = await fetch('/api/search', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    query: term,
+                    documents: documentsForSearch,
+                    mode: 'repository'
+                }),
             });
 
-            const result = JSON.parse(response.text);
+            if (!response.ok) {
+                throw new Error('Search request failed');
+            }
+
+            const result = await response.json();
             setSearchedFileIds(result.relevant_ids || []);
         } catch (error) {
             console.error("Errore nella ricerca semantica:", error);
