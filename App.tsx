@@ -21,13 +21,13 @@ const ACCESS_LEVEL_LABELS: { [key in 'admin' | 'view']: string } = {
 };
 
 const NavItem = React.memo<React.PropsWithChildren<{ onClick: () => void; active?: boolean; className?: string }>>(({ children, onClick, active, className }) => (
-    <button onClick={onClick} className={`inline-flex items-center gap-2 px-3 py-2 rounded-md text-sm font-semibold transition-colors ${active ? 'bg-white/20' : 'hover:bg-white/20'} ${className || ''}`}>
+    <button onClick={onClick} className={`inline-flex items-center gap-2 px-3 py-2 rounded-md text-sm font-semibold transition-all border border-transparent ${active ? 'bg-white/25 shadow-inner border-white/20' : 'hover:bg-white/20 hover:border-white/30'} ${className || ''}`}>
       {children}
     </button>
 ));
 
 const MenuItem = React.memo<React.PropsWithChildren<{ onClick: () => void, style?: React.CSSProperties, className?: string }>>(({ children, onClick, style, className }) => (
-    <a onClick={onClick} className={`flex items-center gap-3 w-full px-3 py-2.5 text-sm text-gray-700 hover:bg-gray-200 hover:text-gray-900 rounded-md transition-colors cursor-pointer ${className || ''}`} style={style}>
+    <a onClick={onClick} className={`flex items-center gap-3 w-full px-3 py-2.5 text-sm text-gray-700 border border-transparent hover:bg-teal-50 hover:text-teal-800 hover:border-teal-100 rounded-md transition-colors cursor-pointer ${className || ''}`} style={style}>
         {children}
     </a>
 ));
@@ -304,14 +304,14 @@ const App: React.FC = () => {
                 <div className="flex items-center gap-4">
                      <button
                         onClick={() => document.dispatchEvent(new CustomEvent('open-contextual-search'))}
-                        className="hidden md:flex items-center gap-2 px-3 py-1.5 rounded-md text-sm bg-white/10 hover:bg-white/20"
+                        className="hidden md:flex items-center gap-2 px-3 py-1.5 rounded-md text-sm bg-white/10 hover:bg-white/20 border border-transparent hover:border-white/30 transition-colors"
                         title="Cerca (⌘+K)"
                      >
                         <Search className="h-4 w-4" />
                         <span className="text-gray-300">Cerca...</span>
                     </button>
                     <div className="relative" ref={openMenu === 'settings' ? menuRef : null}>
-                        <button onClick={() => handleMenuToggle('settings')} className="h-10 w-10 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center transition">
+                        <button onClick={() => handleMenuToggle('settings')} className="h-10 w-10 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center transition border border-transparent hover:border-white/30">
                            <div className="relative">
                                 <UserAvatar className="h-8 w-8 text-white"/>
                                 {unreadNotificationsCount > 0 && (

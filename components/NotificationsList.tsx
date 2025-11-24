@@ -1,5 +1,3 @@
-
-
 import React from 'react';
 import { NotificationItem, UserProfile } from '../types';
 import { serviceMap } from '../services/registry';
@@ -50,7 +48,7 @@ const NotificationsList: React.FC<NotificationsListProps> = ({ notifications, cu
                         <div
                             key={notification.id}
                             onClick={() => onNotificationClick(notification)}
-                            className={`flex items-start gap-4 p-4 rounded-lg cursor-pointer transition-colors ${isUnread ? 'bg-blue-50 hover:bg-blue-100' : 'bg-gray-50 hover:bg-gray-100'}`}
+                            className={`flex items-start gap-4 p-4 rounded-lg cursor-pointer transition-colors ${isUnread ? 'bg-blue-50 hover:bg-blue-100' : 'bg-gray-50 hover:bg-gray-200'}`}
                         >
                             <div className={`flex-shrink-0 mt-1 h-3 w-3 rounded-full ${isUnread ? 'bg-blue-500' : 'bg-transparent'}`}></div>
                             <div className="flex-shrink-0 h-10 w-10 rounded-lg bg-gray-200 flex items-center justify-center">

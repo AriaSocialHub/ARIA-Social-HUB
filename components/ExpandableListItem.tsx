@@ -101,7 +101,7 @@ const ExpandableListItem: React.FC<ExpandableListItemProps> = ({ id, title, cont
   const detailsClasses = useFaqStyle ? 'group rounded-md' : 'group';
   const detailsStyles = useFaqStyle ? { borderLeft: `4px solid ${color}` } : {};
 
-  const summaryClasses = `flex items-center justify-between p-4 list-none cursor-pointer ${!useFaqStyle ? 'hover:bg-gray-50 transition-colors' : ''}`;
+  const summaryClasses = `flex items-center justify-between p-4 list-none cursor-pointer ${!useFaqStyle ? 'hover:bg-gray-100 transition-colors' : ''}`;
   const summaryStyles = useFaqStyle ? { backgroundColor: `${color}1A` } : {};
 
   const titleClasses = useFaqStyle ? 'font-semibold text-base' : 'text-md font-semibold text-gray-800 group-hover:text-blue-700';

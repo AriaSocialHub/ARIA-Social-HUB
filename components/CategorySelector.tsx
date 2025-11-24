@@ -126,7 +126,7 @@ const CategorySelector: React.FC<CategorySelectorProps> = ({
     const isSelectedForDelete = selectedForDelete.has(name);
 
     return (
-     <div key={name} className={`relative bg-white border rounded-lg shadow-sm flex flex-col h-full transition-all duration-200 ${isBulkDeleteMode ? 'cursor-pointer' : 'hover:shadow-lg hover:-translate-y-1 hover:border-blue-300'} ${isSelectedForDelete ? 'border-2 border-red-500 ring-2 ring-red-200' : 'border-gray-200'}`} onClick={isBulkDeleteMode ? () => toggleSelectionForDelete(name) : undefined}>
+     <div key={name} className={`relative bg-white border rounded-lg shadow-sm flex flex-col h-full transition-all duration-200 ${isBulkDeleteMode ? 'cursor-pointer' : 'hover:shadow-md hover:border-blue-500 hover:ring-1 hover:ring-blue-500 hover:bg-blue-50/30'} ${isSelectedForDelete ? 'border-2 border-red-500 ring-2 ring-red-200' : 'border-gray-300'}`} onClick={isBulkDeleteMode ? () => toggleSelectionForDelete(name) : undefined}>
         {editingCategory === name && onRenameCategory ? (
             <div className="p-5 bg-white border-2 border-blue-500 rounded-lg shadow-lg h-full flex flex-col justify-between">
               <input 
@@ -153,14 +153,14 @@ const CategorySelector: React.FC<CategorySelectorProps> = ({
                                   <div className="absolute -top-1 -right-1 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                                     <button 
                                         onClick={(e) => { e.stopPropagation(); setPickingColorFor(name === pickingColorFor ? null : name); }}
-                                        className="p-1 bg-white rounded-full shadow text-gray-500 hover:text-blue-600 hover:bg-gray-100"
+                                        className="p-1 bg-white rounded-full shadow text-gray-500 hover:text-blue-600 hover:bg-gray-100 border border-gray-200"
                                         aria-label="Cambia colore"
                                     >
                                         <div className="w-3 h-3 rounded-full" style={{ backgroundColor: meta?.color || '#4A5568' }}/>
                                     </button>
                                     <button 
                                         onClick={(e) => { e.stopPropagation(); setPickingIconFor(name === pickingIconFor ? null : name); }}
-                                        className="p-1 bg-white rounded-full shadow text-gray-500 hover:text-blue-600 hover:bg-gray-100"
+                                        className="p-1 bg-white rounded-full shadow text-gray-500 hover:text-blue-600 hover:bg-gray-100 border border-gray-200"
                                         aria-label="Cambia icona"
                                     >
                                         <Pencil className="h-3 w-3" />
@@ -170,7 +170,7 @@ const CategorySelector: React.FC<CategorySelectorProps> = ({
                             </div>
                             <h3 className={`text-lg font-semibold text-gray-800 break-all ${!isBulkDeleteMode ? 'group-hover:text-blue-700 transition-colors' : ''}`}>{name}</h3>
                         </button>
-                        <span className="text-sm font-bold bg-gray-100 text-gray-700 px-3 py-1 rounded-full group-hover:bg-blue-100 group-hover:text-blue-800 transition-colors ml-2">
+                        <span className="text-sm font-bold bg-gray-100 text-gray-700 px-3 py-1 rounded-full group-hover:bg-white group-hover:text-blue-800 group-hover:ring-1 group-hover:ring-blue-200 transition-all ml-2">
                             {itemCount}
                         </span>
                     </div>
@@ -232,7 +232,7 @@ const CategorySelector: React.FC<CategorySelectorProps> = ({
     return (
         <div className="max-w-2xl mx-auto">
             <h2 className="text-2xl font-bold text-gray-900 mb-4">Aggiungi Nuova Sezione</h2>
-            <div className="bg-white p-6 rounded-lg shadow-md border space-y-4">
+            <div className="bg-white p-6 rounded-lg shadow-md border border-gray-300 space-y-4">
                 <input
                     type="text"
                     placeholder="Nome della nuova sezione"
@@ -279,11 +279,11 @@ const CategorySelector: React.FC<CategorySelectorProps> = ({
             onAddCategoryClick && (
                 <div className="flex items-center gap-2 self-end">
                      {onDeleteMultipleCategories && (
-                        <button onClick={() => setIsBulkDeleteMode(true)} className="flex items-center gap-2 px-4 py-2 text-sm font-semibold text-white bg-red-600 rounded-md hover:bg-red-700">
+                        <button onClick={() => setIsBulkDeleteMode(true)} className="flex items-center gap-2 px-4 py-2 text-sm font-semibold text-white bg-red-600 rounded-md hover:bg-red-700 shadow-sm border border-transparent">
                            <Trash2 className="h-5 w-5"/>
                         </button>
                      )}
-                    <button onClick={onAddCategoryClick} className="flex items-center gap-2 px-4 py-2 text-sm font-semibold text-white bg-blue-600 rounded-md hover:bg-blue-700">
+                    <button onClick={onAddCategoryClick} className="flex items-center gap-2 px-4 py-2 text-sm font-semibold text-white bg-blue-600 rounded-md hover:bg-blue-700 shadow-sm border border-transparent">
                         <PlusCircle className="h-5 w-5" />
                         <span>Aggiungi Sezione</span>
                     </button>
@@ -295,7 +295,7 @@ const CategorySelector: React.FC<CategorySelectorProps> = ({
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
         {filteredCategories.map(([name, items]) => renderCategoryCard(name, items as any[]))}
         {filteredCategories.length === 0 && (
-            <div className="col-span-full text-center py-16 bg-white border border-gray-200 rounded-lg">
+            <div className="col-span-full text-center py-16 bg-white border border-gray-300 rounded-lg">
                 <p className="text-gray-600">{searchTerm ? `Nessuna sezione trovata per "${searchTerm}".` : 'Nessuna sezione presente.'}</p>
             </div>
         )}

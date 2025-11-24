@@ -1,5 +1,3 @@
-
-
 import React from 'react';
 import { Campaign } from '../types';
 import { Pencil, Trash2, Moon, Link, Facebook, Instagram, Linkedin, Twitter, Music } from 'lucide-react';
@@ -28,7 +26,7 @@ const CampaignsList: React.FC<CampaignsListProps> = ({ campaigns, isReadOnly, is
     const emptyMessage = isArchive ? "Nessuna campagna archiviata" : "Nessuna campagna attiva inserita";
 
     return (
-        <section className="bg-white rounded-xl shadow-sm border">
+        <section className="bg-white rounded-xl shadow-sm border border-gray-300">
             <div className="p-6 border-b">
                 <h2 className="text-2xl font-semibold text-gray-800">{title}</h2>
             </div>
@@ -56,10 +54,10 @@ const CampaignsList: React.FC<CampaignsListProps> = ({ campaigns, isReadOnly, is
                                 const Icon = iconMap[campaign.channel];
                                 const color = iconColorMap[campaign.channel] || 'currentColor';
                                 return (
-                                <tr key={campaign.id} className="hover:bg-gray-50">
+                                <tr key={campaign.id} className="hover:bg-blue-50 transition-colors duration-150">
                                     <td className="px-4 py-2 text-sm text-gray-900 leading-tight">{campaign.title || ''}</td>
                                     <td className="px-4 py-2 text-center leading-tight">
-                                        {campaign.image && <img src={campaign.image || ''} alt="Anteprima" className="w-12 h-12 object-cover mx-auto rounded-lg" />}
+                                        {campaign.image && <img src={campaign.image || ''} alt="Anteprima" className="w-12 h-12 object-cover mx-auto rounded-lg border border-gray-200" />}
                                     </td>
                                     <td className="px-4 py-2 text-sm text-center text-gray-900 leading-tight">{formatDate(campaign.start)} - {formatDate(campaign.end)}</td>
                                     <td className="px-4 py-2 text-sm text-center text-gray-900 leading-tight">{campaign.type || ''}</td>
@@ -80,10 +78,10 @@ const CampaignsList: React.FC<CampaignsListProps> = ({ campaigns, isReadOnly, is
                                     {!isReadOnly && (
                                         <td className="px-4 py-2 text-center leading-tight">
                                             <div className="flex justify-center space-x-2">
-                                                <button onClick={() => onEdit(campaign)} className="p-1.5 bg-yellow-100 text-yellow-600 rounded-lg hover:bg-yellow-200" title="Modifica">
+                                                <button onClick={() => onEdit(campaign)} className="p-1.5 bg-white border border-gray-200 text-yellow-600 rounded-lg hover:bg-yellow-50 hover:border-yellow-300 transition-colors" title="Modifica">
                                                     <Pencil className="w-4 h-4" />
                                                 </button>
-                                                <button onClick={() => onDelete(campaign.id)} className="p-1.5 bg-red-100 text-red-600 rounded-lg hover:bg-red-200" title="Elimina">
+                                                <button onClick={() => onDelete(campaign.id)} className="p-1.5 bg-white border border-gray-200 text-red-600 rounded-lg hover:bg-red-50 hover:border-red-300 transition-colors" title="Elimina">
                                                     <Trash2 className="w-4 h-4" />
                                                 </button>
                                             </div>

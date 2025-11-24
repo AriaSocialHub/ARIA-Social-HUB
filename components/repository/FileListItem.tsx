@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { StoredFile } from '../../types';
 import FileTypeIcon from './FileTypeIcon';
@@ -21,7 +20,7 @@ function formatBytes(bytes: number, decimals = 1) {
 
 const FileListItem: React.FC<FileListItemProps> = ({ file, onDelete, isReadOnly }) => {
     return (
-        <tr className="hover:bg-gray-50/50">
+        <tr className="hover:bg-blue-50 transition-colors duration-150">
             <td className="px-4 py-3"><FileTypeIcon category={file.category} /></td>
             <td className="px-4 py-3 max-w-sm">
                 <p className="font-semibold text-gray-800 truncate">{file.name}</p>
@@ -32,11 +31,11 @@ const FileListItem: React.FC<FileListItemProps> = ({ file, onDelete, isReadOnly 
             <td className="px-4 py-3 whitespace-nowrap text-gray-600 hidden sm:table-cell">{new Date(file.createdAt).toLocaleDateString('it-IT')}</td>
             <td className="px-4 py-3 text-right">
                 <div className="inline-flex items-center gap-2">
-                    <a href={file.url} download={file.name} target="_blank" rel="noopener noreferrer" className="p-2 rounded-full hover:bg-gray-200 text-gray-600" title="Scarica">
+                    <a href={file.url} download={file.name} target="_blank" rel="noopener noreferrer" className="p-2 rounded-full hover:bg-white border border-transparent hover:border-gray-200 shadow-sm text-gray-600 transition-all" title="Scarica">
                         <Download size={18} />
                     </a>
                     {!isReadOnly && (
-                        <button onClick={() => onDelete(file.id)} className="p-2 rounded-full hover:bg-red-100 text-red-500" title="Elimina">
+                        <button onClick={() => onDelete(file.id)} className="p-2 rounded-full hover:bg-white border border-transparent hover:border-red-200 shadow-sm text-red-500 transition-all" title="Elimina">
                             <Trash2 size={18} />
                         </button>
                     )}

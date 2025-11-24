@@ -1,11 +1,5 @@
-
-
-
-
-
-
 import React, { useState, useCallback, useEffect } from 'react';
-import { NewsArticle, UserProfile } from './types';
+import { NewsArticle, UserProfile } from '../types';
 import { PlusCircle, Edit, Trash2, Star, FilePlus2, AlertTriangle, ChevronLeft, ChevronRight } from 'lucide-react';
 import NewsModal from './NewsModal';
 import { useData } from '../contexts/DataContext';
@@ -149,7 +143,7 @@ const NewsSection: React.FC<NewsSectionProps> = ({ currentUser, isReadOnly, onAr
             {featuredNews.length > 0 && (
                 <div className="relative group mb-4 border-b pb-4">
                     {currentFeaturedArticle && (
-                        <div onClick={() => onArticleClick(currentFeaturedArticle)} className="relative cursor-pointer rounded-lg overflow-hidden border border-yellow-300 bg-yellow-50/50">
+                        <div onClick={() => onArticleClick(currentFeaturedArticle)} className="relative cursor-pointer rounded-lg overflow-hidden border border-yellow-300 bg-yellow-50/50 hover:bg-yellow-100 hover:shadow-md transition-all">
                             <img src={currentFeaturedArticle.imageUrl || 'https://images.unsplash.com/photo-1517694712202-14dd9538aa97?q=80&w=2070&auto=format&fit=crop'} alt={currentFeaturedArticle.title} className="w-full h-56 object-cover" />
                             <div className="p-4">
                                 <h4 className="font-bold text-lg text-gray-800 flex items-center gap-2">
@@ -180,7 +174,7 @@ const NewsSection: React.FC<NewsSectionProps> = ({ currentUser, isReadOnly, onAr
                 <h3 className="py-2 text-sm font-semibold text-gray-600">Post Recenti</h3>
             </div>
             
-            <div className="flex-grow space-y-4 overflow-y-auto">
+            <div className="flex-grow space-y-2 overflow-y-auto">
                  {regularNewsToShow.length === 0 && featuredNews.length === 0 ? (
                     <div className="flex flex-col items-center justify-center text-center text-gray-500 h-full py-16">
                         <FilePlus2 size={48} className="text-gray-300 mb-4" />
@@ -189,10 +183,10 @@ const NewsSection: React.FC<NewsSectionProps> = ({ currentUser, isReadOnly, onAr
                     </div>
                  ) : (
                     regularNewsToShow.map(article => (
-                        <div key={article.id} onClick={() => onArticleClick(article)} className={`group relative flex items-start gap-4 p-3 rounded-lg cursor-pointer transition-all duration-200 ${article.isFeatured ? 'bg-yellow-50 border-l-4 border-yellow-400 hover:bg-yellow-100/70' : 'hover:bg-gray-100 hover:shadow-sm hover:translate-x-1'}`}>
-                            <img src={article.imageUrl || 'https://images.unsplash.com/photo-1517694712202-14dd9538aa97?q=80&w=2070&auto=format&fit=crop'} alt={article.title} className="w-20 h-20 object-cover rounded-md flex-shrink-0" />
+                        <div key={article.id} onClick={() => onArticleClick(article)} className={`group relative flex items-start gap-4 p-3 rounded-lg cursor-pointer transition-all duration-200 mb-2 border border-transparent ${article.isFeatured ? 'bg-yellow-50 border-yellow-400 hover:bg-yellow-100' : 'hover:bg-blue-50 hover:border-blue-300 hover:shadow-sm'}`}>
+                            <img src={article.imageUrl || 'https://images.unsplash.com/photo-1517694712202-14dd9538aa97?q=80&w=2070&auto=format&fit=crop'} alt={article.title} className="w-20 h-20 object-cover rounded-md flex-shrink-0 border border-gray-200" />
                             <div className="flex-grow">
-                                <h4 className="font-semibold text-gray-800 flex items-center gap-2">
+                                <h4 className="font-semibold text-gray-800 flex items-center gap-2 group-hover:text-blue-800 transition-colors">
                                     {article.title}
                                 </h4>
                                 <p className="text-sm text-gray-600 mt-1 line-clamp-2">{article.content}</p>
@@ -200,8 +194,8 @@ const NewsSection: React.FC<NewsSectionProps> = ({ currentUser, isReadOnly, onAr
                             </div>
                             {!isReadOnly && (
                                 <div className="flex-shrink-0 flex flex-col gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                    <button onClick={(e) => { e.stopPropagation(); handleOpenNewsModal(article); }} className="p-1.5 rounded-full hover:bg-gray-200" title="Modifica"><Edit className="h-4 w-4 text-gray-500" /></button>
-                                    <button onClick={(e) => { e.stopPropagation(); setArticleToHide(article); }} className="p-1.5 rounded-full hover:bg-red-100" title="Nascondi dalla dashboard"><Trash2 className="h-4 w-4 text-red-500" /></button>
+                                    <button onClick={(e) => { e.stopPropagation(); handleOpenNewsModal(article); }} className="p-1.5 rounded-full hover:bg-white border border-transparent hover:border-gray-200 shadow-sm" title="Modifica"><Edit className="h-4 w-4 text-gray-500" /></button>
+                                    <button onClick={(e) => { e.stopPropagation(); setArticleToHide(article); }} className="p-1.5 rounded-full hover:bg-white border border-transparent hover:border-red-200 shadow-sm" title="Nascondi dalla dashboard"><Trash2 className="h-4 w-4 text-red-500" /></button>
                                 </div>
                             )}
                         </div>

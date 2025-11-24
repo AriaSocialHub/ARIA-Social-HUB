@@ -212,7 +212,11 @@ const ManualTicketApp: React.FC<ManualTicketAppProps> = ({ serviceId, isReadOnly
         } else if (key === 'soglia') {
             uniqueValues = SOGLIE;
         } else {
-            uniqueValues = [...new Set(augmentedTickets.map(t => String((t as any)[key] || 'N/D')).filter(Boolean))].sort((a,b) => a.localeCompare(b));
+            const rawValues = augmentedTickets.map(t => {
+                const val = (t as any)[key];
+                return val ? String(val) : 'N/D';
+            });
+            uniqueValues = Array.from(new Set(rawValues)).sort((a, b) => a.localeCompare(b));
         }
 
         return (
@@ -232,7 +236,7 @@ const ManualTicketApp: React.FC<ManualTicketAppProps> = ({ serviceId, isReadOnly
     const centeredHeaders = ['Fuori orario', 'Diff.', 'Soglia', 'Flag'];
 
     return (
-        <div className="bg-white p-4 sm:p-6 rounded-xl border border-gray-200 shadow-sm">
+        <div className="bg-white p-4 sm:p-6 rounded-xl border border-gray-300 shadow-sm">
             <div className="flex flex-col sm:flex-row justify-between items-center mb-6 gap-4">
                 <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Ticket manuali</h1>
                 <div className="flex items-center gap-2 w-full sm:w-auto">
@@ -242,7 +246,7 @@ const ManualTicketApp: React.FC<ManualTicketAppProps> = ({ serviceId, isReadOnly
                     </div>
                     <button onClick={generatePDF} className="p-2.5 bg-white border border-gray-300 text-gray-700 rounded-md hover:bg-gray-100 shadow-sm" title="Esporta PDF"><Download className="h-5 w-5" /></button>
                     {canAdd && (
-                        <button onClick={() => { setEditingTicket(null); setIsModalOpen(true); }} className="flex items-center gap-2 px-4 py-2.5 bg-blue-600 text-white rounded-md hover:bg-blue-700 shadow-sm font-semibold">
+                        <button onClick={() => { setEditingTicket(null); setIsModalOpen(true); }} className="flex items-center gap-2 px-4 py-2.5 bg-blue-600 text-white rounded-md hover:bg-blue-700 shadow-sm font-semibold border border-transparent">
                             <Plus className="h-5 w-5" />
                             <span className="hidden sm:inline">Nuovo</span>
                         </button>
@@ -271,7 +275,7 @@ const ManualTicketApp: React.FC<ManualTicketAppProps> = ({ serviceId, isReadOnly
                     </thead>
                     <tbody className="divide-y divide-gray-200 bg-white">
                         {filteredTickets.length > 0 ? filteredTickets.map(ticket => (
-                            <tr key={ticket.id} className="hover:bg-gray-50/50">
+                            <tr key={ticket.id} className="hover:bg-blue-50 transition-colors duration-150">
                                 <td className="px-4 py-3 whitespace-nowrap"><div className="flex items-center gap-3">{getPlatformIcon(ticket.piattaforma)} <span className="font-semibold text-gray-800">{ticket.piattaforma}</span></div></td>
                                 <td className="px-4 py-3 max-w-xs"><div className="font-bold text-gray-800 truncate">{ticket.nome_utente}</div><div className="text-gray-500 truncate">{ticket.testo_contenuto}</div></td>
                                 <td className="px-4 py-3 whitespace-nowrap text-gray-700">{formatDateTime(ticket.data_domanda)}</td>
@@ -284,8 +288,8 @@ const ManualTicketApp: React.FC<ManualTicketAppProps> = ({ serviceId, isReadOnly
                                 <td className="px-4 py-3 whitespace-nowrap text-center"><span className={`font-bold ${ticket.soglia === 'KO' ? 'text-red-600' : 'text-green-600'}`}>{ticket.soglia || '–'}</span></td>
                                 <td className="px-4 py-3 whitespace-nowrap text-xl text-center">{getFlagIcons(ticket)}</td>
                                 {(canEdit || canDelete) && <td className="px-4 py-3 whitespace-nowrap">
-                                    {canEdit && <button onClick={() => {setEditingTicket(ticket); setIsModalOpen(true);}} className="p-2 text-gray-500 hover:text-blue-600 rounded-full hover:bg-gray-100" title="Modifica"><Edit size={16}/></button>}
-                                    {canDelete && <button onClick={() => setTicketToDelete(ticket)} className="p-2 text-red-600 hover:bg-red-100 rounded-full" title="Elimina"><Trash2 size={16}/></button>}
+                                    {canEdit && <button onClick={() => {setEditingTicket(ticket); setIsModalOpen(true);}} className="p-2 text-gray-500 hover:text-blue-600 rounded-full hover:bg-white border border-transparent hover:border-gray-200 shadow-sm transition-colors" title="Modifica"><Edit size={16}/></button>}
+                                    {canDelete && <button onClick={() => setTicketToDelete(ticket)} className="p-2 text-red-600 hover:bg-white hover:text-red-700 rounded-full border border-transparent hover:border-red-200 shadow-sm transition-colors" title="Elimina"><Trash2 size={16}/></button>}
                                 </td>}
                             </tr>
                         )) : (

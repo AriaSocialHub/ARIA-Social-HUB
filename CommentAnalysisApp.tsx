@@ -1,6 +1,3 @@
-
-
-
 import React, { useState, useCallback, useMemo } from 'react';
 import { CommentPost, CommentAnalysisData, UserProfile } from './types';
 import { Search, PlusCircle, Inbox, ClipboardList, Check } from 'lucide-react';
@@ -155,7 +152,7 @@ const CommentAnalysisApp: React.FC<CommentAnalysisAppProps> = ({ isReadOnly, ser
                     return (
                         <div 
                             key={post.id}
-                            className={`group bg-white p-6 rounded-xl shadow-sm border relative flex flex-col justify-between transition-all duration-200 cursor-pointer ${isSelected ? 'ring-2 ring-blue-500 shadow-blue-200/50' : 'hover:shadow-md hover:-translate-y-1'}`} 
+                            className={`group bg-white p-6 rounded-xl shadow-sm border border-gray-300 relative flex flex-col justify-between transition-all duration-200 cursor-pointer ${isSelected ? 'ring-2 ring-blue-500 shadow-blue-200/50' : 'hover:shadow-md hover:bg-blue-50/20 hover:border-blue-400'}`} 
                             onClick={() => {
                                 if (isComparing) {
                                     handleToggleComparisonSelection(post.id);
@@ -214,8 +211,8 @@ const CommentAnalysisApp: React.FC<CommentAnalysisAppProps> = ({ isReadOnly, ser
                             
                             {!isReadOnly && !isComparing && (
                                 <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                    <button onClick={(e) => { e.stopPropagation(); setEditingPost(post); setPostModalOpen(true); }} className="p-2 bg-white/50 backdrop-blur-sm text-gray-600 hover:bg-gray-200 rounded-full" title="Modifica"><Edit className="w-4 h-4"/></button>
-                                    <button onClick={(e) => { e.stopPropagation(); handleDeletePost(post.id); }} className="p-2 bg-white/50 backdrop-blur-sm text-red-500 hover:bg-red-200 rounded-full" title="Elimina"><Trash2 className="w-4 h-4"/></button>
+                                    <button onClick={(e) => { e.stopPropagation(); setEditingPost(post); setPostModalOpen(true); }} className="p-2 bg-white border border-gray-200 text-gray-600 hover:bg-gray-50 hover:border-blue-300 hover:text-blue-600 rounded-full shadow-sm transition-all" title="Modifica"><Edit className="w-4 h-4"/></button>
+                                    <button onClick={(e) => { e.stopPropagation(); handleDeletePost(post.id); }} className="p-2 bg-white border border-gray-200 text-red-500 hover:bg-red-50 hover:border-red-300 rounded-full shadow-sm transition-all" title="Elimina"><Trash2 className="w-4 h-4"/></button>
                                 </div>
                             )}
                         </div>
