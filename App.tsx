@@ -1,7 +1,3 @@
-
-
-
-
 import React, { useState, useCallback, useEffect, useMemo, useRef } from 'react';
 import { LogOut, Eye, FileUp, ChevronDown, LayoutGrid, Folder, Wrench, Bell, Menu, X, Bot, Users as UsersIcon, Search } from 'lucide-react';
 import UploadApp from './UploadApp';
@@ -25,13 +21,13 @@ const ACCESS_LEVEL_LABELS: { [key in 'admin' | 'view']: string } = {
 };
 
 const NavItem = React.memo<React.PropsWithChildren<{ onClick: () => void; active?: boolean; className?: string }>>(({ children, onClick, active, className }) => (
-    <button onClick={onClick} className={`inline-flex items-center gap-2 px-3 py-2 rounded-md text-sm font-semibold transition-colors ${active ? 'bg-white/20' : 'hover:bg-white/10'} ${className || ''}`}>
+    <button onClick={onClick} className={`inline-flex items-center gap-2 px-3 py-2 rounded-md text-sm font-semibold transition-colors ${active ? 'bg-white/20' : 'hover:bg-white/20'} ${className || ''}`}>
       {children}
     </button>
 ));
 
 const MenuItem = React.memo<React.PropsWithChildren<{ onClick: () => void, style?: React.CSSProperties, className?: string }>>(({ children, onClick, style, className }) => (
-    <a onClick={onClick} className={`flex items-center gap-3 w-full px-3 py-2.5 text-sm text-gray-700 hover:bg-gray-100 hover:text-gray-900 rounded-md transition-colors cursor-pointer ${className || ''}`} style={style}>
+    <a onClick={onClick} className={`flex items-center gap-3 w-full px-3 py-2.5 text-sm text-gray-700 hover:bg-gray-200 hover:text-gray-900 rounded-md transition-colors cursor-pointer ${className || ''}`} style={style}>
         {children}
     </a>
 ));

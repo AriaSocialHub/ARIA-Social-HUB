@@ -2,6 +2,8 @@
 
 
 
+
+
 import React, { useState, useCallback, useEffect } from 'react';
 import { NewsArticle, UserProfile } from './types';
 import { PlusCircle, Edit, Trash2, Star, FilePlus2, AlertTriangle, ChevronLeft, ChevronRight } from 'lucide-react';
@@ -187,7 +189,7 @@ const NewsSection: React.FC<NewsSectionProps> = ({ currentUser, isReadOnly, onAr
                     </div>
                  ) : (
                     regularNewsToShow.map(article => (
-                        <div key={article.id} onClick={() => onArticleClick(article)} className={`group relative flex items-start gap-4 p-3 rounded-lg cursor-pointer transition-colors ${article.isFeatured ? 'bg-yellow-50 border-l-4 border-yellow-400 hover:bg-yellow-100/70' : 'hover:bg-gray-50'}`}>
+                        <div key={article.id} onClick={() => onArticleClick(article)} className={`group relative flex items-start gap-4 p-3 rounded-lg cursor-pointer transition-all duration-200 ${article.isFeatured ? 'bg-yellow-50 border-l-4 border-yellow-400 hover:bg-yellow-100/70' : 'hover:bg-gray-100 hover:shadow-sm hover:translate-x-1'}`}>
                             <img src={article.imageUrl || 'https://images.unsplash.com/photo-1517694712202-14dd9538aa97?q=80&w=2070&auto=format&fit=crop'} alt={article.title} className="w-20 h-20 object-cover rounded-md flex-shrink-0" />
                             <div className="flex-grow">
                                 <h4 className="font-semibold text-gray-800 flex items-center gap-2">

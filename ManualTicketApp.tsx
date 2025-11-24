@@ -1,5 +1,3 @@
-
-
 import React, { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import { ManualTicket, ManualTicketsData, User } from './types';
 import { useData } from './contexts/DataContext';
@@ -214,7 +212,7 @@ const ManualTicketApp: React.FC<ManualTicketAppProps> = ({ serviceId, isReadOnly
         } else if (key === 'soglia') {
             uniqueValues = SOGLIE;
         } else {
-            uniqueValues = [...new Set(augmentedTickets.map(t => (t as any)[key] || 'N/D').filter(Boolean))].sort((a,b) => a.localeCompare(b));
+            uniqueValues = [...new Set(augmentedTickets.map(t => String((t as any)[key] || 'N/D')).filter(Boolean))].sort((a,b) => a.localeCompare(b));
         }
 
         return (

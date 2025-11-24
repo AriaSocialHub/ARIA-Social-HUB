@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo } from 'react';
 import { Campaign, CampaignsData, UserProfile } from './types';
 import CampaignModal from './components/CampaignModal';
@@ -87,6 +86,11 @@ const CampaignsApp: React.FC<CampaignsAppProps> = ({ serviceId, isReadOnly, curr
         return source.filter(c => c.channel === channelFilter);
     }, [activeCampaigns, archivedCampaigns, view, channelFilter]);
 
+    const calendarCampaigns = useMemo(() => {
+        if (channelFilter === 'tutti') return activeCampaigns;
+        return activeCampaigns.filter(c => c.channel === channelFilter);
+    }, [activeCampaigns, channelFilter]);
+
     const MainContent = () => (
         <div className="space-y-8">
             <CampaignsList 
@@ -98,7 +102,7 @@ const CampaignsApp: React.FC<CampaignsAppProps> = ({ serviceId, isReadOnly, curr
             />
             {view === 'dashboard' && (
                 <CampaignCalendar
-                    campaigns={activeCampaigns} // Calendar always shows active campaigns regardless of filter
+                    campaigns={calendarCampaigns}
                     dateFilter={dateFilter}
                     setDateFilter={setDateFilter}
                 />

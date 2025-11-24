@@ -178,22 +178,6 @@ export const services: Service<any>[] = [
     category: 'utility',
   },
   {
-    id: 'shifts-primo-livello',
-    name: 'Turni Primo Livello',
-    icon: Users,
-    description: 'Visualizza e gestisci i turni del team di primo livello.',
-    appComponent: ShiftsApp,
-    category: 'utility',
-  },
-  {
-    id: 'shifts-secondo-livello',
-    name: 'Turni Secondo Livello',
-    icon: Users,
-    description: 'Visualizza e gestisci i turni del team di secondo livello.',
-    appComponent: ShiftsApp,
-    category: 'utility',
-  },
-  {
     id: 'userManagement',
     name: 'Gestione Utenze',
     icon: Users,

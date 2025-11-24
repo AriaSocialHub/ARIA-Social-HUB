@@ -74,7 +74,8 @@
       }
       .btn-primary:hover:not(:disabled) {
         background-color: var(--c-accent-dark);
-        box-shadow: 0 4px 12px rgba(232, 131, 88, 0.3);
+        box-shadow: 0 4px 12px rgba(232, 131, 88, 0.5);
+        transform: translateY(-1px);
       }
       .btn-secondary {
         background-color: var(--c-surface);
@@ -82,8 +83,9 @@
         border-color: var(--c-border);
       }
       .btn-secondary:hover:not(:disabled) {
-        background-color: #F9FAFB; /* Gray 50 */
-        border-color: #D1D5DB; /* Gray 300 */
+        background-color: #E5E7EB; /* Darker Gray on hover for visibility */
+        border-color: #9CA3AF; /* Darker border */
+        box-shadow: 0 2px 4px rgba(0,0,0,0.05);
       }
 
       /* Form Input Styles */

@@ -191,7 +191,7 @@ const CategorySelector: React.FC<CategorySelectorProps> = ({
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-        {filteredCategories.map(([name, items]) => renderCategoryCard(name, items))}
+        {filteredCategories.map(([name, items]) => renderCategoryCard(name, items as any[]))}
         {filteredCategories.length === 0 && (
             <div className="col-span-full text-center py-16 bg-white border border-gray-200 rounded-lg">
                 <p className="text-gray-600">{searchTerm ? `Nessuna sezione trovata per "${searchTerm}".` : 'Nessuna sezione presente.'}</p>

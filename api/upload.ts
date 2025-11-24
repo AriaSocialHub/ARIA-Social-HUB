@@ -1,16 +1,16 @@
-// FIX: Add a triple-slash directive to include Node.js type definitions.
-/// <reference types="node" />
 
 import { supabaseAdmin } from '../lib/supabaseClient';
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 
+declare var Buffer: any;
+
 // Helper function to read a readable stream into a buffer.
 // This is necessary because Vercel provides the request body as a stream.
-async function streamToBuffer(readableStream: NodeJS.ReadableStream): Promise<Buffer> {
+async function streamToBuffer(readableStream: any): Promise<any> {
   return new Promise((resolve, reject) => {
-    const chunks: Buffer[] = [];
-    readableStream.on('data', (chunk) => {
-      chunks.push(chunk as Buffer);
+    const chunks: any[] = [];
+    readableStream.on('data', (chunk: any) => {
+      chunks.push(chunk);
     });
     readableStream.on('end', () => {
       resolve(Buffer.concat(chunks));

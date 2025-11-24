@@ -14,7 +14,7 @@ interface ExpandableListItemProps {
   contentLabel?: string;
 }
 
-export default function ExpandableListItem({ id, title, content, date, onUpdate, onDelete, startInEditMode = false, useFaqStyle = false, color = '#6B7280', contentLabel = 'Dettagli' }: ExpandableListItemProps) {
+const ExpandableListItem: React.FC<ExpandableListItemProps> = ({ id, title, content, date, onUpdate, onDelete, startInEditMode = false, useFaqStyle = false, color = '#6B7280', contentLabel = 'Dettagli' }) => {
   const [isEditing, setIsEditing] = useState(startInEditMode);
   const [editedTitle, setEditedTitle] = useState(title);
   const [editedContent, setEditedContent] = useState(content || '');
@@ -162,4 +162,6 @@ export default function ExpandableListItem({ id, title, content, date, onUpdate,
         </div>
     </details>
   );
-}
+};
+
+export default ExpandableListItem;

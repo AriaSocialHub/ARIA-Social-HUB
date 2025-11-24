@@ -99,7 +99,7 @@ const NewsDetailModal: React.FC<NewsDetailModalProps> = ({ article, isReadOnly, 
                         <AuthorAvatar authorName={article.author} />
                         <div>
                             <p className="font-semibold text-gray-800">{article.author}</p>
-                            <p className="text-sm text-gray-500">{new Date(article.createdAt).toLocaleDateString('it-IT', { day: 'numeric', month: 'long', year: 'numeric' })}</p>
+                            <p className="text-sm text-gray-500">{new Date(article.createdAt).toLocaleDateString('it-IT', { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</p>
                         </div>
                     </div>
 
