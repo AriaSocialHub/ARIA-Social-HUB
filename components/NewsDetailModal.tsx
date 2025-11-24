@@ -79,7 +79,7 @@ const NewsDetailModal: React.FC<NewsDetailModalProps> = ({ article, isReadOnly, 
     }, [onClose]);
 
     return (
-        <div className="fixed inset-0 bg-black/60 flex justify-center items-start z-[100] w-screen h-screen p-4 pt-12 overflow-y-auto">
+        <div className="fixed top-0 left-0 w-full h-full bg-black/60 flex justify-center items-start z-[9999] p-4 pt-12 overflow-y-auto">
             <div ref={modalRef} className="bg-white rounded-xl shadow-xl w-full max-w-3xl my-auto flex flex-col relative">
                 <div className="relative">
                     <ArticleImage

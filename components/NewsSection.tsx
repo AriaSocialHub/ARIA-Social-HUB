@@ -143,7 +143,7 @@ const NewsSection: React.FC<NewsSectionProps> = ({ currentUser, isReadOnly, onAr
             {featuredNews.length > 0 && (
                 <div className="relative group mb-4 border-b pb-4">
                     {currentFeaturedArticle && (
-                        <div onClick={() => onArticleClick(currentFeaturedArticle)} className="relative cursor-pointer rounded-lg overflow-hidden border border-[#04434E]/30 bg-[#04434E]/5 hover:bg-[#04434E]/10 hover:shadow-md transition-all">
+                        <div onClick={() => onArticleClick(currentFeaturedArticle)} className="relative cursor-pointer rounded-lg overflow-hidden border border-yellow-400 bg-yellow-50 hover:bg-yellow-100 hover:border-yellow-500 hover:shadow-md transition-all">
                             <img src={currentFeaturedArticle.imageUrl || 'https://images.unsplash.com/photo-1517694712202-14dd9538aa97?q=80&w=2070&auto=format&fit=crop'} alt={currentFeaturedArticle.title} className="w-full h-56 object-cover" />
                             <div className="p-4">
                                 <h4 className="font-bold text-lg text-gray-800 flex items-center gap-2">
@@ -183,7 +183,7 @@ const NewsSection: React.FC<NewsSectionProps> = ({ currentUser, isReadOnly, onAr
                     </div>
                  ) : (
                     regularNewsToShow.map(article => (
-                        <div key={article.id} onClick={() => onArticleClick(article)} className={`group relative flex items-start gap-4 p-3 rounded-lg cursor-pointer transition-all duration-200 mb-2 border border-gray-300 ${article.isFeatured ? 'bg-yellow-50 border-yellow-400 hover:bg-yellow-100' : 'hover:bg-[#04434E]/5 hover:border-[#04434E] hover:shadow-sm'}`}>
+                        <div key={article.id} onClick={() => onArticleClick(article)} className={`group relative flex items-start gap-4 p-3 rounded-lg cursor-pointer transition-all duration-200 mb-2 border border-gray-300 ${article.isFeatured ? 'bg-yellow-50 border-yellow-400 hover:bg-yellow-100 hover:border-yellow-500' : 'hover:bg-[#04434E]/5 hover:border-[#04434E] hover:shadow-sm'}`}>
                             <img src={article.imageUrl || 'https://images.unsplash.com/photo-1517694712202-14dd9538aa97?q=80&w=2070&auto=format&fit=crop'} alt={article.title} className="w-20 h-20 object-cover rounded-md flex-shrink-0 border border-gray-200" />
                             <div className="flex-grow">
                                 <h4 className="font-semibold text-gray-800 flex items-center gap-2 group-hover:text-[#04434E] transition-colors">

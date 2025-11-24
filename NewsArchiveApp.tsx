@@ -286,6 +286,22 @@ const NewsArchiveApp: React.FC<NewsArchiveAppProps> = ({ serviceId, currentUser,
                     filteredNews.map(article => {
                         const isSelected = isSelectionMode && selectedIds.has(article.id);
                         const isHidden = article.isVisibleOnDashboard === false;
+                        
+                        // Define base classes
+                        const baseClasses = "group relative bg-white border rounded-lg p-6 transition-all duration-200 cursor-pointer";
+                        
+                        // Selection and visibility states
+                        let stateClasses = "border-gray-200";
+                        if (isSelected) stateClasses = "border-blue-500 ring-2 ring-blue-200";
+                        if (isHidden && !isSelected) stateClasses += " opacity-70";
+                        
+                        // Hover and Theme styles
+                        let themeClasses = "hover:shadow-md hover:bg-[#04434E]/5 hover:border-[#04434E]"; // Default Teal hover
+                        if (article.isFeatured && !isSelected) {
+                            // Golden style for featured items
+                            themeClasses = "bg-yellow-50 border-yellow-400 hover:bg-yellow-100 hover:border-yellow-500 hover:shadow-md";
+                        }
+
                         return (
                             <div 
                                 key={article.id} 
@@ -297,12 +313,7 @@ const NewsArchiveApp: React.FC<NewsArchiveAppProps> = ({ serviceId, currentUser,
                                         setModalState({ type: 'detail', article });
                                     }
                                 }}
-                                className={`group relative bg-white border rounded-lg p-6 transition-all duration-200 
-                                  ${isSelectionMode ? 'cursor-pointer' : 'hover:shadow-md cursor-pointer'} 
-                                  ${isSelected ? 'border-blue-500 ring-2 ring-blue-200' : 'border-gray-200'} 
-                                  ${isHidden && !isSelected ? 'opacity-70' : ''}
-                                  ${article.isFeatured && !isSelected ? 'bg-yellow-50/50 border-yellow-300' : ''}
-                                `}
+                                className={`${baseClasses} ${stateClasses} ${themeClasses}`}
                             >
                                 {isSelectionMode && !isReadOnly && (
                                     <div className="absolute top-4 right-4 h-6 w-6 rounded-full flex items-center justify-center border-2 transition-all bg-white z-10 pointer-events-none" style={{ borderColor: isSelected ? 'var(--c-primary)' : '#9ca3af' }}>
