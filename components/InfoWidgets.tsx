@@ -140,7 +140,7 @@ const InfoWidgets: React.FC<InfoWidgetsProps> = ({ onlineUsers, recentActivity, 
                             const ServiceIcon = serviceMap[notification.serviceId]?.icon || BookText;
                             
                             return (
-                                <button onClick={() => handleNavigate(notification)} key={notification.id} className="w-full group flex items-start justify-between p-2 hover:bg-gray-50 rounded-lg text-left gap-3">
+                                <button onClick={() => handleNavigate(notification)} key={notification.id} className="w-full group flex items-start justify-between p-2 border border-gray-300 hover:bg-[#04434E]/5 hover:border-[#04434E] rounded-lg text-left gap-3 transition-all duration-200">
                                     <div className="flex-shrink-0 h-8 w-8 rounded-lg bg-gray-100 flex items-center justify-center">
                                        <ServiceIcon className="h-5 w-5 text-gray-500" />
                                     </div>
@@ -153,7 +153,7 @@ const InfoWidgets: React.FC<InfoWidgetsProps> = ({ onlineUsers, recentActivity, 
                                             <span>{timeAgo(notification.timestamp)}</span>
                                         </div>
                                     </div>
-                                    <ArrowRight className="h-5 w-5 text-gray-400 group-hover:text-[var(--c-primary-light)] transition-colors flex-shrink-0 ml-2 mt-1" />
+                                    <ArrowRight className="h-5 w-5 text-gray-400 group-hover:text-[var(--c-primary)] transition-colors flex-shrink-0 ml-2 mt-1" />
                                 </button>
                             );
                         })

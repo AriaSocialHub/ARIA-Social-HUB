@@ -66,6 +66,9 @@ const NewsDetailModal: React.FC<NewsDetailModalProps> = ({ article, isReadOnly, 
 
 
     useEffect(() => {
+        // Scroll to top on mount to ensure visibility of the modal even if triggered from bottom of page
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+
         const handleOutsideClick = (event: MouseEvent) => {
             if (modalRef.current && !modalRef.current.contains(event.target as Node)) {
                 onClose();
@@ -76,8 +79,8 @@ const NewsDetailModal: React.FC<NewsDetailModalProps> = ({ article, isReadOnly, 
     }, [onClose]);
 
     return (
-        <div className="fixed inset-0 bg-black/60 flex justify-center items-start z-50 p-4 pt-12">
-            <div ref={modalRef} className="bg-white rounded-xl shadow-xl w-full max-w-3xl max-h-[90vh] overflow-y-auto flex flex-col">
+        <div className="fixed inset-0 bg-black/60 flex justify-center items-start z-[100] w-screen h-screen p-4 pt-12 overflow-y-auto">
+            <div ref={modalRef} className="bg-white rounded-xl shadow-xl w-full max-w-3xl my-auto flex flex-col relative">
                 <div className="relative">
                     <ArticleImage
                         src={article.imageUrl}
@@ -109,7 +112,7 @@ const NewsDetailModal: React.FC<NewsDetailModalProps> = ({ article, isReadOnly, 
                 </div>
 
                 {!isReadOnly && (
-                    <div className="px-8 py-4 bg-gray-50 flex justify-end gap-3 border-t sticky bottom-0 rounded-b-xl">
+                    <div className="px-8 py-4 bg-gray-50 flex justify-end gap-3 border-t rounded-b-xl">
                         <button onClick={() => onEdit(article)} className="btn btn-secondary">
                             <Edit className="h-4 w-4" /> Modifica
                         </button>

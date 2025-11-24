@@ -212,7 +212,7 @@ const ManualTicketApp: React.FC<ManualTicketAppProps> = ({ serviceId, isReadOnly
         } else if (key === 'soglia') {
             uniqueValues = SOGLIE;
         } else {
-            const rawValues = augmentedTickets.map(t => {
+            const rawValues: string[] = augmentedTickets.map(t => {
                 const val = (t as any)[key];
                 return val ? String(val) : 'N/D';
             });

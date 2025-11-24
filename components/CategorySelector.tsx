@@ -126,20 +126,20 @@ const CategorySelector: React.FC<CategorySelectorProps> = ({
     const isSelectedForDelete = selectedForDelete.has(name);
 
     return (
-     <div key={name} className={`relative bg-white border rounded-lg shadow-sm flex flex-col h-full transition-all duration-200 ${isBulkDeleteMode ? 'cursor-pointer' : 'hover:shadow-md hover:border-blue-500 hover:ring-1 hover:ring-blue-500 hover:bg-blue-50/30'} ${isSelectedForDelete ? 'border-2 border-red-500 ring-2 ring-red-200' : 'border-gray-300'}`} onClick={isBulkDeleteMode ? () => toggleSelectionForDelete(name) : undefined}>
+     <div key={name} className={`relative bg-white border rounded-lg shadow-sm flex flex-col h-full transition-all duration-200 ${isBulkDeleteMode ? 'cursor-pointer' : 'hover:shadow-md hover:border-[#04434E] hover:ring-1 hover:ring-[#04434E] hover:bg-[#04434E]/5'} ${isSelectedForDelete ? 'border-2 border-red-500 ring-2 ring-red-200' : 'border-gray-300'}`} onClick={isBulkDeleteMode ? () => toggleSelectionForDelete(name) : undefined}>
         {editingCategory === name && onRenameCategory ? (
-            <div className="p-5 bg-white border-2 border-blue-500 rounded-lg shadow-lg h-full flex flex-col justify-between">
+            <div className="p-5 bg-white border-2 border-[#04434E] rounded-lg shadow-lg h-full flex flex-col justify-between">
               <input 
                 type="text"
                 value={newCategoryName}
                 onChange={(e) => setNewCategoryName(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && handleSaveEdit()}
-                className="text-lg font-semibold text-gray-800 border-b-2 border-blue-300 focus:outline-none w-full bg-white text-gray-900"
+                className="text-lg font-semibold text-gray-800 border-b-2 border-[#04434E] focus:outline-none w-full bg-white text-gray-900"
                 autoFocus
               />
               <div className="mt-4 flex justify-end gap-2">
                 <button onClick={handleCancelEdit} className="p-2 rounded-full hover:bg-gray-200"> <X className="h-5 w-5 text-gray-600"/> </button>
-                <button onClick={handleSaveEdit} className="p-2 rounded-full bg-blue-100 hover:bg-blue-200"> <Check className="h-5 w-5 text-blue-700"/> </button>
+                <button onClick={handleSaveEdit} className="p-2 rounded-full bg-[#04434E]/10 hover:bg-[#04434E]/20"> <Check className="h-5 w-5 text-[#04434E]"/> </button>
               </div>
             </div>
          ) : (
@@ -153,14 +153,14 @@ const CategorySelector: React.FC<CategorySelectorProps> = ({
                                   <div className="absolute -top-1 -right-1 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                                     <button 
                                         onClick={(e) => { e.stopPropagation(); setPickingColorFor(name === pickingColorFor ? null : name); }}
-                                        className="p-1 bg-white rounded-full shadow text-gray-500 hover:text-blue-600 hover:bg-gray-100 border border-gray-200"
+                                        className="p-1 bg-white rounded-full shadow text-gray-500 hover:text-[#04434E] hover:bg-gray-100 border border-gray-200"
                                         aria-label="Cambia colore"
                                     >
                                         <div className="w-3 h-3 rounded-full" style={{ backgroundColor: meta?.color || '#4A5568' }}/>
                                     </button>
                                     <button 
                                         onClick={(e) => { e.stopPropagation(); setPickingIconFor(name === pickingIconFor ? null : name); }}
-                                        className="p-1 bg-white rounded-full shadow text-gray-500 hover:text-blue-600 hover:bg-gray-100 border border-gray-200"
+                                        className="p-1 bg-white rounded-full shadow text-gray-500 hover:text-[#04434E] hover:bg-gray-100 border border-gray-200"
                                         aria-label="Cambia icona"
                                     >
                                         <Pencil className="h-3 w-3" />
@@ -168,9 +168,9 @@ const CategorySelector: React.FC<CategorySelectorProps> = ({
                                   </div>
                                 )}
                             </div>
-                            <h3 className={`text-lg font-semibold text-gray-800 break-all ${!isBulkDeleteMode ? 'group-hover:text-blue-700 transition-colors' : ''}`}>{name}</h3>
+                            <h3 className={`text-lg font-semibold text-gray-800 break-all ${!isBulkDeleteMode ? 'group-hover:text-[#04434E] transition-colors' : ''}`}>{name}</h3>
                         </button>
-                        <span className="text-sm font-bold bg-gray-100 text-gray-700 px-3 py-1 rounded-full group-hover:bg-white group-hover:text-blue-800 group-hover:ring-1 group-hover:ring-blue-200 transition-all ml-2">
+                        <span className="text-sm font-bold bg-gray-100 text-gray-700 px-3 py-1 rounded-full group-hover:bg-white group-hover:text-[#04434E] group-hover:ring-1 group-hover:ring-[#04434E] transition-all ml-2">
                             {itemCount}
                         </span>
                     </div>
@@ -179,7 +179,7 @@ const CategorySelector: React.FC<CategorySelectorProps> = ({
                     </p>
                 </div>
                 {!isBulkDeleteMode && <div className="mt-4 pt-4 border-t border-gray-100 flex justify-between items-center">
-                    <button onClick={() => onSelect(name)} className="text-sm font-semibold text-blue-600 flex items-center gap-2 hover:underline">
+                    <button onClick={() => onSelect(name)} className="text-sm font-semibold text-[#04434E] flex items-center gap-2 hover:underline">
                         <span>Visualizza</span>
                         <ArrowRight className="h-4 w-4" />
                     </button>
@@ -238,7 +238,7 @@ const CategorySelector: React.FC<CategorySelectorProps> = ({
                     placeholder="Nome della nuova sezione"
                     value={addName}
                     onChange={(e) => setAddName(e.target.value)}
-                    className="w-full text-lg p-3 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 bg-white text-gray-900"
+                    className="w-full text-lg p-3 border border-gray-300 rounded-md shadow-sm focus:ring-[#04434E] focus:border-[#04434E] bg-white text-gray-900"
                     autoFocus
                 />
                 <div className="flex justify-end gap-3">
@@ -264,7 +264,7 @@ const CategorySelector: React.FC<CategorySelectorProps> = ({
                   placeholder="Cerca una sezione..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 bg-white text-gray-900"
+                  className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-[#04434E] focus:border-[#04434E] bg-white text-gray-900"
                 />
             </div>
         </div>
@@ -283,7 +283,7 @@ const CategorySelector: React.FC<CategorySelectorProps> = ({
                            <Trash2 className="h-5 w-5"/>
                         </button>
                      )}
-                    <button onClick={onAddCategoryClick} className="flex items-center gap-2 px-4 py-2 text-sm font-semibold text-white bg-blue-600 rounded-md hover:bg-blue-700 shadow-sm border border-transparent">
+                    <button onClick={onAddCategoryClick} className="flex items-center gap-2 px-4 py-2 text-sm font-semibold text-white bg-[#04434E] rounded-md hover:bg-[#2D9C92] shadow-sm border border-transparent">
                         <PlusCircle className="h-5 w-5" />
                         <span>Aggiungi Sezione</span>
                     </button>
