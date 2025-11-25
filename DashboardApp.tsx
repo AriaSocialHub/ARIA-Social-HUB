@@ -62,13 +62,11 @@ const DashboardApp: React.FC<DashboardAppProps> = ({
                         currentUser={currentUser}
                         handleNavigate={handleNavigate}
                     />
-                     {notifications.filter(n => n.author !== currentUser?.name && !n.readBy.includes(currentUser.name)).length > 0 && (
-                        <NotificationsList 
-                            notifications={notifications}
-                            currentUser={currentUser}
-                            onNotificationClick={(notification) => handleNavigate(notification)}
-                        />
-                    )}
+                    <NotificationsList 
+                        notifications={notifications}
+                        currentUser={currentUser}
+                        onNotificationClick={(notification) => handleNavigate(notification)}
+                    />
                 </div>
             </div>
         </div>

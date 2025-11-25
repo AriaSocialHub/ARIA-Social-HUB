@@ -1,5 +1,3 @@
-
-
 import React, { createContext, useContext, useState, useCallback, ReactNode, useEffect } from 'react';
 import { AppData, NotificationItem, StoredFile, User } from '../types';
 import api from '../services/apiService';
@@ -105,6 +103,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             categoryName,
             itemId,
             readBy: [author],
+            clearedBy: [],
             author,
             id: `notif-${Date.now()}-${Math.random()}`,
         };
