@@ -74,19 +74,3 @@ const DashboardApp: React.FC<DashboardAppProps> = ({
 };
 
 export default DashboardApp;
-
-// Add a simple fade-in animation for the dashboard.
-if (!document.getElementById('dashboard-animation-style')) {
-    const style = document.createElement('style');
-    style.id = 'dashboard-animation-style';
-    style.innerHTML = `
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(10px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-        .animate-fadeIn {
-            animation: fadeIn 0.5s ease-out forwards;
-        }
-    `;
-    document.head.appendChild(style);
-}

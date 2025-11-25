@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useCallback, ReactNode, use
 import { AppData, NotificationItem, StoredFile, User } from '../types';
 import api from '../services/apiService';
 import { serviceMap } from '../services/registry';
+import { createClient } from '@supabase/supabase-js';
 
 const createDeepCopy = <T,>(data: T): T => JSON.parse(JSON.stringify(data));
 
@@ -53,6 +54,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const [appData, setAppData] = useState<AppData>({ services_data: {}, notifications: [], users: {} });
     const [isLoading, setIsLoading] = useState(true);
 
+    // Initial fetch
     useEffect(() => {
         api.fetchAllData().then(data => {
             // Perform a cleanup of notifications older than 24 hours on load
@@ -68,13 +70,60 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         });
     }, []);
 
+    // Realtime Subscription Setup
+    useEffect(() => {
+        let supabaseClient: any = null;
+        let channel: any = null;
+
+        const setupRealtime = async () => {
+            try {
+                const response = await fetch('/api/config');
+                if (!response.ok) throw new Error('Failed to fetch Supabase config');
+                const { supabaseUrl, supabaseAnonKey } = await response.json();
+                
+                if (supabaseUrl && supabaseAnonKey) {
+                    supabaseClient = createClient(supabaseUrl, supabaseAnonKey);
+                    
+                    channel = supabaseClient.channel('system_events');
+                    
+                    channel
+                        .on('broadcast', { event: 'db_update' }, () => {
+                            console.log("Received Realtime Update Signal. Refreshing data...");
+                            api.fetchAllData().then(data => {
+                                // Re-apply notification cleanup on live updates too
+                                const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+                                if (data.notifications) {
+                                    data.notifications = data.notifications.filter(n => new Date(n.timestamp) > oneDayAgo);
+                                }
+                                setAppData(data);
+                            }).catch(e => console.error("Failed to refresh data after signal", e));
+                        })
+                        .subscribe();
+                }
+            } catch (error) {
+                console.error("Error setting up realtime sync:", error);
+            }
+        };
+
+        setupRealtime();
+
+        return () => {
+            if (channel) {
+                supabaseClient?.removeChannel(channel);
+            }
+        };
+    }, []);
+
     const performOptimisticUpdate = useCallback(async (updateFunction: (currentData: AppData) => AppData) => {
         const originalData = appData;
         const newData = updateFunction(createDeepCopy(originalData));
         setAppData(newData); // Optimistic update
         try {
+            // The saveData call triggers the broadcast in api/data.ts
+            // We set the local state here for speed, but the broadcast will trigger a re-fetch for everyone (including us) eventually
+            // ensuring consistency.
             const savedData = await api.saveData(newData);
-            setAppData(savedData); // Sync with server state
+            setAppData(savedData); 
         } catch (error) {
             console.error("Failed to save data, rolling back:", error);
             setAppData(originalData); // Rollback on error
