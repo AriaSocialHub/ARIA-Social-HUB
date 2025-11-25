@@ -1,6 +1,7 @@
 
 
 
+
 import React from 'react';
 
 export interface Service<T> {
@@ -209,6 +210,7 @@ export interface NotificationItem {
   categoryName?: string; // e.g., 'Sicurezza'
   itemId?: string; // e.g., 'ticket-123'
   readBy: string[]; // Array of user names who have read it
+  clearedBy: string[]; // Array of user names who have cleared it from their dashboard
   author: string; // User who triggered the notification
 }
 

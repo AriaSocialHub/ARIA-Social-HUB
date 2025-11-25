@@ -1,5 +1,3 @@
-
-
 import React, { createContext, useContext, useState, useCallback, ReactNode, useEffect } from 'react';
 import { AppData, NotificationItem, StoredFile, User } from '../types';
 import api from '../services/apiService';
@@ -26,7 +24,7 @@ interface DataContextType {
     onDeleteFile: (serviceId: string, categoryName: string, fileId: string, author: string) => Promise<void>;
     markNotificationRead: (notificationId: string, username: string) => Promise<void>;
     markAllNotificationsRead: (username: string) => Promise<void>;
-    // FIX: Add 'addUser' to the context type to make it available to consumers.
+    clearNotificationsLog: (username: string) => Promise<void>;
     addUser: (userData: { name: string; password_NOT_HASHED: string; accessLevel: 'admin' | 'view' }) => Promise<void>;
     updateUser: (user: User) => Promise<void>;
     deleteUser: (username: string) => Promise<void>;
@@ -57,6 +55,11 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
     useEffect(() => {
         api.fetchAllData().then(data => {
+            // Perform a cleanup of notifications older than 24 hours on load
+            const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+            if (data.notifications) {
+                data.notifications = data.notifications.filter(n => new Date(n.timestamp) > oneDayAgo);
+            }
             setAppData(data);
         }).catch(err => {
             console.error("Failed to load initial data", err);
@@ -99,6 +102,10 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         }
         const message = `${author} ha ${actionText} "${title}" nella sezione ${serviceName}${categoryName ? ` > ${categoryName}`: ''}.`;
         
+        // Also clean up old notifications when adding a new one
+        const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+        const cleanNotifications = currentData.notifications.filter(n => new Date(n.timestamp) > oneDayAgo);
+
         const newNotification: NotificationItem = {
             message,
             timestamp: new Date().toISOString(),
@@ -106,13 +113,13 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             categoryName,
             itemId,
             readBy: [author],
+            clearedBy: [],
             author,
             id: `notif-${Date.now()}-${Math.random()}`,
         };
-        currentData.notifications.unshift(newNotification);
-        if (currentData.notifications.length > 100) {
-            currentData.notifications = currentData.notifications.slice(0, 100);
-        }
+        
+        cleanNotifications.unshift(newNotification);
+        currentData.notifications = cleanNotifications.slice(0, 100); // Keep max 100
         return currentData;
     }, []);
 
@@ -325,6 +332,16 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         });
     }, [performOptimisticUpdate]);
 
+    const clearNotificationsLog = useCallback(async (username: string) => {
+        await performOptimisticUpdate(d => {
+            d.notifications.forEach(n => {
+                if (!n.clearedBy) n.clearedBy = []; // Ensure array exists
+                if (!n.clearedBy.includes(username)) n.clearedBy.push(username);
+            });
+            return d;
+        });
+    }, [performOptimisticUpdate]);
+
     const updateUser = useCallback(async (user: User) => {
         await performOptimisticUpdate(d => {
             const userKey = user.name.toLowerCase();
@@ -332,8 +349,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             return d;
         });
     }, [performOptimisticUpdate]);
-
-    // FIX: Implement and export the 'addUser' function.
+    
     const addUser = useCallback(async (userData: { name: string; password_NOT_HASHED: string; accessLevel: 'admin' | 'view' }) => {
         const userKey = userData.name.trim().toLowerCase();
         if (!userKey) {
@@ -379,6 +395,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         onDeleteFile,
         markNotificationRead,
         markAllNotificationsRead,
+        clearNotificationsLog,
         addUser,
         updateUser,
         deleteUser,

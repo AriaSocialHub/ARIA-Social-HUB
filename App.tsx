@@ -1,3 +1,5 @@
+
+
 import React, { useState, useCallback, useEffect, useMemo, useRef } from 'react';
 import { LogOut, Eye, FileUp, ChevronDown, LayoutGrid, Folder, Wrench, Bell, Menu, X, Bot, Users as UsersIcon, Search } from 'lucide-react';
 import UploadApp from './UploadApp';
@@ -11,6 +13,7 @@ import { timeService } from './services/timeSyncService';
 import { useData } from './contexts/DataContext';
 import PasswordChange from './components/PasswordChange';
 import GlobalSearchModal from './components/GlobalSearchModal';
+import NotificationPopup from './components/NotificationPopup';
 
 type View = 'upload' | string; // Can be 'upload' or a service ID
 type AuthStatus = 'LOGGED_OUT' | 'NEEDS_PASSWORD_CHANGE' | 'NEEDS_AVATAR_SETUP' | 'LOGGED_IN';
@@ -40,10 +43,11 @@ const App: React.FC = () => {
   const [uploadServiceContext, setUploadServiceContext] = useState<string | null>(null);
   const [openMenu, setOpenMenu] = useState<string | null>(null);
   const menuRef = useRef<HTMLDivElement>(null);
-  const { notifications, markNotificationRead, markAllNotificationsRead, isLoading: isDataLoading } = useData();
+  const { notifications, markNotificationRead, isLoading: isDataLoading } = useData();
   const [navigationTarget, setNavigationTarget] = useState<NavigationTarget | null>(null);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [mobileSubMenu, setMobileSubMenu] = useState<string | null>(null);
+  const [showNotifications, setShowNotifications] = useState(false);
 
   // --- Login Persistence ---
   useEffect(() => {
@@ -140,6 +144,7 @@ const App: React.FC = () => {
     setOpenMenu(null);
     setIsMobileMenuOpen(false);
     setMobileSubMenu(null);
+    setShowNotifications(false);
   }, [signOutPresence]);
   
   const handleToggleAdminView = useCallback(() => {
@@ -171,6 +176,7 @@ const App: React.FC = () => {
 
   const handleMenuToggle = useCallback((menuName: string) => {
     setOpenMenu(openMenu === menuName ? null : menuName);
+    if (menuName !== 'settings') setShowNotifications(false);
   }, [openMenu]);
 
   const handleViewAndCloseMenu = useCallback((newView: View) => {
@@ -202,14 +208,10 @@ const App: React.FC = () => {
   }, [currentUser, markNotificationRead]);
 
 
-  const handleMarkAllReadAndShow = useCallback(() => {
-    if (currentUser) markAllNotificationsRead(currentUser.name);
-    setView('dashboard');
-    setOpenMenu(null);
-    setTimeout(() => {
-        document.getElementById('notifications-feed')?.scrollIntoView({ behavior: 'smooth' });
-    }, 100);
-  }, [currentUser, markAllNotificationsRead]);
+  const handleToggleNotifications = useCallback(() => {
+    setShowNotifications(prev => !prev);
+    setOpenMenu(null); // Close the main menu when opening notifications via menu item
+  }, []);
   
 
   if (authStatus === 'LOGGED_OUT' || isDataLoading) {
@@ -329,7 +331,7 @@ const App: React.FC = () => {
                                 <div className="text-sm text-gray-500">{ACCESS_LEVEL_LABELS[currentUser.accessLevel]}</div>
                             </div>
                             <div className="p-2 space-y-1">
-                                <MenuItem onClick={() => {handleMarkAllReadAndShow(); setOpenMenu(null);}} className="!flex !justify-between">
+                                <MenuItem onClick={handleToggleNotifications} className="!flex !justify-between">
                                     <div className="flex items-center gap-3"><Bell className="h-5 w-5 text-gray-500" /> <span>Notifiche</span></div>
                                     {unreadNotificationsCount > 0 && <span className="bg-blue-600 text-white text-xs font-semibold rounded-full px-2 py-0.5">{unreadNotificationsCount}</span>}
                                 </MenuItem>
@@ -357,6 +359,14 @@ const App: React.FC = () => {
                                 </MenuItem>
                             </div>
                         </div>
+                        {showNotifications && (
+                            <NotificationPopup 
+                                notifications={notifications} 
+                                currentUser={currentUser} 
+                                onClose={() => setShowNotifications(false)} 
+                                onNavigate={handleNavigate} 
+                            />
+                        )}
                     </div>
                     {/* Mobile Menu Button */}
                     <div className="md:hidden flex items-center">

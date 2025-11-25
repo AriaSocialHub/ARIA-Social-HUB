@@ -11,15 +11,22 @@ interface NotificationsListProps {
 }
 
 const NotificationsList: React.FC<NotificationsListProps> = ({ notifications, currentUser, onNotificationClick }) => {
-    const { markAllNotificationsRead } = useData();
+    const { clearNotificationsLog } = useData();
 
     if (!currentUser) return null;
 
-    const myNotifications = notifications.filter(n => n.author !== currentUser?.name && !n.readBy.includes(currentUser.name));
+    // Show items that haven't been cleared by the user (history)
+    // Exclude self-authored unless debugging, but typically notification logs show system updates.
+    // Original logic: n.author !== currentUser.name
+    // We keep this logic but change filter from 'readBy' to 'clearedBy'
+    const myNotifications = notifications.filter(n => 
+        n.author !== currentUser?.name && 
+        (!n.clearedBy || !n.clearedBy.includes(currentUser.name))
+    );
     
     const handleClearAll = () => {
         if (currentUser) {
-            markAllNotificationsRead(currentUser.name);
+            clearNotificationsLog(currentUser.name);
         }
     };
 
@@ -48,14 +55,13 @@ const NotificationsList: React.FC<NotificationsListProps> = ({ notifications, cu
                         <div
                             key={notification.id}
                             onClick={() => onNotificationClick(notification)}
-                            className={`flex items-start gap-4 p-4 rounded-lg cursor-pointer transition-colors ${isUnread ? 'bg-blue-50 hover:bg-blue-100' : 'bg-gray-50 hover:bg-gray-200'}`}
+                            className={`flex items-start gap-4 p-4 rounded-lg cursor-pointer transition-colors ${isUnread ? 'bg-blue-50 hover:bg-blue-100 border-l-4 border-blue-500' : 'bg-gray-50 hover:bg-gray-200 border-l-4 border-transparent'}`}
                         >
-                            <div className={`flex-shrink-0 mt-1 h-3 w-3 rounded-full ${isUnread ? 'bg-blue-500' : 'bg-transparent'}`}></div>
                             <div className="flex-shrink-0 h-10 w-10 rounded-lg bg-gray-200 flex items-center justify-center">
                                 <ServiceIcon className="h-5 w-5 text-gray-600" />
                             </div>
                             <div className="flex-grow">
-                                <p className="text-sm text-gray-800">{notification.message}</p>
+                                <p className={`text-sm ${isUnread ? 'font-semibold text-gray-900' : 'text-gray-800'}`}>{notification.message}</p>
                                 <p className="text-xs text-gray-500 mt-1">{timeAgo(notification.timestamp)}</p>
                             </div>
                         </div>
