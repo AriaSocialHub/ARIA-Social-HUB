@@ -1,5 +1,7 @@
 
 
+
+
 import React, { useState, useCallback, useEffect, useMemo, useRef } from 'react';
 import { LogOut, Eye, FileUp, ChevronDown, LayoutGrid, Folder, Wrench, Bell, Menu, X, Bot, Users as UsersIcon, Search } from 'lucide-react';
 import UploadApp from './UploadApp';
@@ -56,9 +58,12 @@ const App: React.FC = () => {
       const storedUser = localStorage.getItem('socialHub_currentUser');
       if (storedUser) {
         const user: User = JSON.parse(storedUser);
+        const today = new Date().toLocaleDateString('en-CA');
+
         if (user.forcePasswordChange) {
           setAuthStatus('NEEDS_PASSWORD_CHANGE');
-        } else if (!user.avatar) {
+        } else if (!user.avatar || user.avatarDate !== today) {
+          // Check if avatar is set AND if it was set today
           setAuthStatus('NEEDS_AVATAR_SETUP');
         } else {
           setAuthStatus('LOGGED_IN');
@@ -106,9 +111,12 @@ const App: React.FC = () => {
   const handleLoginSuccess = (user: User) => {
     localStorage.setItem('socialHub_currentUser', JSON.stringify(user));
     setCurrentUser(user);
+    const today = new Date().toLocaleDateString('en-CA');
+
     if (user.forcePasswordChange) {
       setAuthStatus('NEEDS_PASSWORD_CHANGE');
-    } else if (!user.avatar) {
+    } else if (!user.avatar || user.avatarDate !== today) {
+      // Force avatar setup if missing OR if not from today
       setAuthStatus('NEEDS_AVATAR_SETUP');
     } else {
       setAuthStatus('LOGGED_IN');
@@ -119,7 +127,9 @@ const App: React.FC = () => {
   const handlePasswordChanged = (user: User) => {
     localStorage.setItem('socialHub_currentUser', JSON.stringify(user));
     setCurrentUser(user);
-    if (!user.avatar) {
+    const today = new Date().toLocaleDateString('en-CA');
+
+    if (!user.avatar || user.avatarDate !== today) {
       setAuthStatus('NEEDS_AVATAR_SETUP');
     } else {
       setAuthStatus('LOGGED_IN');

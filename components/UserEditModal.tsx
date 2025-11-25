@@ -1,4 +1,6 @@
 
+
+
 import React, { useState } from 'react';
 import { User } from '../types';
 import { avatarList, getAvatar, getAvatarColor } from '../services/avatarRegistry';
@@ -19,8 +21,10 @@ const UserEditModal: React.FC<UserEditModalProps> = ({ user, onClose, onSave }) 
 
     const takenAvatars = React.useMemo(() => {
         const avatarMap = new Map<string, string>();
+        const today = new Date().toLocaleDateString('en-CA');
         Object.values(appData.users).forEach(u => {
-            if (u.avatar && u.name.toLowerCase() !== user.name.toLowerCase()) {
+            // Considered taken ONLY if avatar matches AND it was set today
+            if (u.avatar && u.name.toLowerCase() !== user.name.toLowerCase() && u.avatarDate === today) {
                 avatarMap.set(u.avatar, u.name);
             }
         });
@@ -38,7 +42,7 @@ const UserEditModal: React.FC<UserEditModalProps> = ({ user, onClose, onSave }) 
 
         const avatarIsTaken = takenAvatars.has(formData.avatar);
         if(avatarIsTaken){
-            setError(`L'avatar selezionato è già in uso da ${takenAvatars.get(formData.avatar)}. Scegline un altro.`);
+            setError(`L'avatar selezionato è già in uso da ${takenAvatars.get(formData.avatar)} per la giornata di oggi. Scegline un altro.`);
             return;
         }
 
@@ -60,7 +64,7 @@ const UserEditModal: React.FC<UserEditModalProps> = ({ user, onClose, onSave }) 
                             <input id="name" type="text" value={formData.name} disabled className="form-input mt-1 disabled:bg-gray-200"/>
                         </div>
                          <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">Avatar</label>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">Avatar (Reset Giornaliero)</label>
                             <div className="grid grid-cols-6 md:grid-cols-8 lg:grid-cols-10 gap-3">
                                 {avatarList.map(avatarName => {
                                     const AvatarIcon = getAvatar(avatarName);
@@ -70,7 +74,7 @@ const UserEditModal: React.FC<UserEditModalProps> = ({ user, onClose, onSave }) 
                                     return (
                                         <button key={avatarName} type="button" onClick={() => !isTaken && setFormData(f => ({...f, avatar: avatarName}))} disabled={isTaken}
                                             className={`p-3 rounded-full flex items-center justify-center transition-all duration-200 aspect-square ${isTaken ? 'bg-gray-200 cursor-not-allowed opacity-70' : isSelected ? 'ring-4 ring-blue-500 bg-blue-50' : 'bg-gray-100 ring-2 ring-transparent hover:ring-blue-400'}`}
-                                            title={isTaken ? `In uso da ${takenAvatars.get(avatarName)}` : avatarName}>
+                                            title={isTaken ? `In uso oggi da ${takenAvatars.get(avatarName)}` : avatarName}>
                                             <AvatarIcon className="w-8 h-8" style={{color: getAvatarColor(avatarName)}} />
                                         </button>
                                     );

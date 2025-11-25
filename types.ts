@@ -2,6 +2,7 @@
 
 
 
+
 import React from 'react';
 
 export interface Service<T> {
@@ -127,6 +128,7 @@ export interface User extends UserProfile {
   accessLevel: 'admin' | 'view';
   password?: string;
   forcePasswordChange?: boolean;
+  avatarDate?: string; // YYYY-MM-DD date of when the avatar was last set
 }
 
 

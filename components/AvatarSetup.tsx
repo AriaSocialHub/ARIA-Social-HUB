@@ -1,8 +1,10 @@
 
+
+
 import React, { useState, useMemo, useEffect } from 'react';
 import { User } from '../types';
 import { avatarList, getAvatar, getAvatarColor } from '../services/avatarRegistry';
-import { XCircle, Loader2 } from 'lucide-react';
+import { XCircle, Loader2, Sparkles } from 'lucide-react';
 import { useData } from '../contexts/DataContext';
 
 interface AvatarSetupProps {
@@ -16,11 +18,18 @@ const AvatarSetup: React.FC<AvatarSetupProps> = ({ onProfileCreated, user }) => 
   const [isLoading, setIsLoading] = useState(false);
   const { appData, updateUser } = useData();
   
+  // Filter taken avatars to strictly exclude those taken *TODAY*.
+  // Avatars from previous days are considered free.
   const takenAvatars = useMemo(() => {
     const avatarMap = new Map<string, string>();
+    const today = new Date().toLocaleDateString('en-CA');
+    
     Object.values(appData.users).forEach(u => {
       if (u.avatar && u.name.toLowerCase() !== user.name.toLowerCase()) {
-        avatarMap.set(u.avatar, u.name);
+        // Check if the avatar was claimed today
+        if (u.avatarDate === today) {
+            avatarMap.set(u.avatar, u.name);
+        }
       }
     });
     return avatarMap;
@@ -37,7 +46,12 @@ const AvatarSetup: React.FC<AvatarSetupProps> = ({ onProfileCreated, user }) => 
     setIsLoading(true);
 
     try {
-        const updatedUser = { ...user, avatar: selectedAvatar };
+        // Save avatar with today's date
+        const updatedUser = { 
+            ...user, 
+            avatar: selectedAvatar,
+            avatarDate: new Date().toLocaleDateString('en-CA')
+        };
         await updateUser(updatedUser);
         onProfileCreated(updatedUser);
     } catch (err) {
@@ -49,35 +63,40 @@ const AvatarSetup: React.FC<AvatarSetupProps> = ({ onProfileCreated, user }) => 
 
   return (
     <div className="min-h-screen flex items-center justify-center p-4 antialiased" style={{ backgroundColor: 'var(--c-bg)' }}>
-      <div className="w-full max-w-2xl">
-        <div className="card p-8">
+      <div className="w-full max-w-3xl">
+        <div className="card p-8 relative overflow-hidden">
+            {/* Decorazione sfondo */}
+            <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-[var(--c-primary-light)] to-[var(--c-accent)]"></div>
+            
             <div className="text-center mb-8">
-                <h1 className="text-2xl font-bold" style={{ color: 'var(--c-text-heading)' }}>Completa il tuo Profilo</h1>
-                <p className="text-gray-500 mt-1">Scegli un avatar per essere riconosciuto dal team.</p>
+                <div className="mx-auto h-16 w-16 rounded-full bg-gradient-to-br from-[var(--c-accent)] to-orange-600 flex items-center justify-center mb-4 text-white shadow-lg animate-bounce">
+                    <Sparkles size={32} />
+                </div>
+                <h1 className="text-3xl font-bold text-gray-900">Ogni giorno è una nuova avventura!</h1>
+                <p className="text-lg text-gray-600 mt-2 max-w-lg mx-auto">
+                    Come da tradizione, gli avatar vengono resettati ogni mattina.<br/>
+                    <span className="font-medium text-[var(--c-primary)]">Scegli il tuo personaggio per la giornata di oggi!</span>
+                </p>
             </div>
             
             <form onSubmit={handleSubmit} noValidate>
-                <div className="space-y-6">
-                    <div>
-                        <label htmlFor="display-name" className="block text-sm font-medium text-gray-700">
-                           Nome Visualizzato
-                        </label>
-                        <div className="mt-1">
-                          <input
-                              id="display-name"
-                              type="text"
-                              value={user.name}
-                              disabled
-                              className="form-input disabled:bg-gray-200"
-                          />
-                        </div>
+                <div className="space-y-8">
+                    <div className="bg-gray-50 p-4 rounded-lg border border-gray-200 text-center">
+                        <p className="text-sm text-gray-500 mb-1">Stai accedendo come</p>
+                        <p className="text-xl font-bold text-gray-800">{user.name}</p>
                     </div>
 
                     <div>
-                         <label className="block text-sm font-medium text-gray-700 mb-2">
-                           Scegli il tuo Avatar <span className="text-red-500">*</span>
-                        </label>
-                        <div className="grid grid-cols-6 md:grid-cols-8 lg:grid-cols-9 gap-4">
+                         <div className="flex justify-between items-end mb-4">
+                            <label className="block text-sm font-bold text-gray-700">
+                                Avatar Disponibili Oggi
+                            </label>
+                            <span className="text-xs text-gray-500 italic">
+                                {takenAvatars.size} avatar già presi dai colleghi
+                            </span>
+                         </div>
+                        
+                        <div className="grid grid-cols-6 md:grid-cols-8 lg:grid-cols-9 gap-3">
                             {avatarList.map((avatarName) => {
                                 const AvatarIcon = getAvatar(avatarName);
                                 const isSelected = selectedAvatar === avatarName;
@@ -85,31 +104,31 @@ const AvatarSetup: React.FC<AvatarSetupProps> = ({ onProfileCreated, user }) => 
                                 const takenBy = isTaken ? takenAvatars.get(avatarName) : null;
                                 
                                 let iconColor = getAvatarColor(avatarName);
-                                let buttonClasses = 'p-4 rounded-full flex items-center justify-center transition-all duration-200 aspect-square';
+                                let buttonClasses = 'p-3 rounded-xl flex items-center justify-center transition-all duration-200 aspect-square relative';
 
                                 if (isTaken) {
-                                    buttonClasses += ' bg-gray-200 cursor-not-allowed opacity-70';
-                                    iconColor = '#9CA3AF';
+                                    buttonClasses += ' bg-gray-100 cursor-not-allowed opacity-40 grayscale';
+                                    iconColor = '#6B7280';
                                 } else if (isSelected) {
-                                    buttonClasses += ' ring-4 ring-[var(--c-primary-light)] transform hover:-translate-y-1 bg-teal-50';
+                                    buttonClasses += ' ring-4 ring-[var(--c-primary-light)] shadow-lg transform scale-110 bg-teal-50 z-10';
                                 } else {
-                                    buttonClasses += ' bg-white ring-2 ring-gray-200 hover:bg-gray-50 transform hover:-translate-y-1 hover:ring-[var(--c-primary-light)]';
+                                    buttonClasses += ' bg-white border border-gray-200 hover:border-[var(--c-primary-light)] hover:shadow-md transform hover:-translate-y-1';
                                 }
 
                                 return (
-                                    <div key={avatarName} className="relative">
+                                    <div key={avatarName} className="relative group">
                                         <button
                                             type="button"
-                                            title={isTaken ? `Scelto da ${takenBy}` : avatarName}
+                                            title={isTaken ? `Già scelto da ${takenBy} per oggi` : avatarName}
                                             onClick={() => !isTaken && setSelectedAvatar(avatarName)}
                                             disabled={isTaken}
                                             className={buttonClasses}
                                         >
-                                            <AvatarIcon className="h-10 w-10" style={{ color: iconColor }} />
+                                            <AvatarIcon className="h-8 w-8" style={{ color: iconColor }} />
                                         </button>
                                         {isTaken && takenBy && (
-                                            <div className="absolute -bottom-1 -right-1 bg-gray-700 text-white text-[10px] font-bold rounded-full h-5 w-5 flex items-center justify-center border-2 border-white pointer-events-none" title={`Scelto da ${takenBy}`}>
-                                                {takenBy.charAt(0).toUpperCase()}
+                                            <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 bg-gray-800 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-full whitespace-nowrap z-20 shadow-sm max-w-full truncate">
+                                                {takenBy.split(' ')[0]}
                                             </div>
                                         )}
                                     </div>
@@ -119,20 +138,20 @@ const AvatarSetup: React.FC<AvatarSetupProps> = ({ onProfileCreated, user }) => 
                     </div>
                     
                     {error && (
-                        <div className="flex items-center justify-center gap-2 text-sm text-red-600 bg-red-50 p-3 rounded-md border border-red-200">
+                        <div className="flex items-center justify-center gap-2 text-sm text-red-600 bg-red-50 p-4 rounded-lg border border-red-200 animate-pulse">
                             <XCircle className="h-5 w-5 flex-shrink-0" />
                             <span>{error}</span>
                         </div>
                     )}
 
-                    <div>
+                    <div className="pt-4">
                         <button
                           type="submit"
                           disabled={isLoading}
-                          className="btn w-full justify-center"
+                          className="btn w-full justify-center text-lg py-3 shadow-lg hover:shadow-xl transform active:scale-95 transition-all"
                           style={{ backgroundColor: 'var(--c-primary-light)', color: 'white' }}
                         >
-                        { isLoading ? <Loader2 className="animate-spin" /> : 'Salva e Continua' }
+                        { isLoading ? <Loader2 className="animate-spin" /> : 'Conferma e Entra' }
                         </button>
                     </div>
                 </div>
