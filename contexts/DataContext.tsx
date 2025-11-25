@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useState, useCallback, ReactNode, useEffect } from 'react';
 import { AppData, NotificationItem, StoredFile, User } from '../types';
 import api from '../services/apiService';
@@ -345,22 +346,35 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }, [performOptimisticUpdate, addNotification]);
 
     const onDeleteFile = useCallback(async (serviceId: string, categoryName: string, fileId: string, author: string) => {
+        // Attempt to find the file object to get its name/url before deletion
+        const serviceData = appData.services_data[serviceId];
+        let fileToDelete: StoredFile | undefined;
+        if (serviceData?.data && serviceId === 'repository' && Array.isArray(serviceData.data)) {
+            fileToDelete = serviceData.data.find((f: StoredFile) => f.id === fileId);
+        }
+
+        if (fileToDelete) {
+            // Trigger physical deletion from storage. 
+            // We assume file.name corresponds to the storage key/filename used during upload.
+            await api.deleteFileBlob(fileToDelete.name);
+        }
+
         await performOptimisticUpdate(d => {
-            const serviceData = d.services_data[serviceId];
-            if (!serviceData?.data) return d;
+            const sData = d.services_data[serviceId];
+            if (!sData?.data) return d;
             
-            let fileToDelete: StoredFile | undefined;
-            if (serviceId === 'repository' && Array.isArray(serviceData.data)) {
-                 fileToDelete = serviceData.data.find((f: StoredFile) => f.id === fileId);
-                 if (fileToDelete) serviceData.data = serviceData.data.filter((f: StoredFile) => f.id !== fileId);
+            let deletedFile: StoredFile | undefined;
+            if (serviceId === 'repository' && Array.isArray(sData.data)) {
+                 deletedFile = sData.data.find((f: StoredFile) => f.id === fileId);
+                 if (deletedFile) sData.data = sData.data.filter((f: StoredFile) => f.id !== fileId);
             }
             
-            if (fileToDelete) {
-                return addNotification(d, author, serviceId, 'delete', `file "${fileToDelete.name}"`, categoryName, fileId);
+            if (deletedFile) {
+                return addNotification(d, author, serviceId, 'delete', `file "${deletedFile.name}"`, categoryName, fileId);
             }
             return d;
         });
-    }, [performOptimisticUpdate, addNotification]);
+    }, [appData, performOptimisticUpdate, addNotification]);
 
     const markNotificationRead = useCallback(async (notificationId: string, username: string) => {
         await performOptimisticUpdate(d => {

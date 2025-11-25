@@ -55,6 +55,21 @@ async function uploadFile(file: File | Blob, filename: string): Promise<string> 
     return result.url;
 }
 
+/**
+ * Deletes a file from the backend blob storage.
+ * @param filename The name of the file to delete (must match the filename used during upload).
+ */
+async function deleteFileBlob(filename: string): Promise<void> {
+    const response = await fetch(`/api/upload?filename=${encodeURIComponent(filename)}`, {
+        method: 'DELETE',
+    });
+    if (!response.ok) {
+        const errorText = await response.text();
+        console.error('File deletion failed:', errorText);
+        // We log the error but don't throw, so the UI update can still proceed if the file was already gone
+    }
+}
+
 // --- User Management ---
 async function fetchAllUsers(): Promise<Record<string, User>> {
     const response = await fetch('/api/users');
@@ -84,6 +99,7 @@ const api = {
   fetchAllData,
   saveData,
   uploadFile,
+  deleteFileBlob,
   fetchAllUsers,
   updateUser,
   deleteUser,

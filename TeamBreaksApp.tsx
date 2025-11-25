@@ -1,6 +1,4 @@
 
-
-
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { PauseData, AllPauseData, OnlineUser, UserProfile } from './types';
 import { UserPlus, Filter, Trash2, Coffee, AlertTriangle } from 'lucide-react';
@@ -25,9 +23,21 @@ interface TeamBreaksAppProps {
   now: Date;
 }
 
-const TeamBreaksApp: React.FC<TeamBreaksAppProps> = ({ serviceId, isReadOnly, onlineUsers, currentUserForBreaks: currentUser, now }) => {
+const TeamBreaksApp: React.FC<TeamBreaksAppProps> = ({ serviceId, isReadOnly, onlineUsers, currentUserForBreaks: currentUser }) => {
     const { servicesData, saveServiceData } = useData();
     const pauseData: AllPauseData = servicesData[serviceId]?.data || [];
+
+    // State for live time, updating every second
+    const [now, setNow] = useState(new Date());
+
+    useEffect(() => {
+        // Sync immediately
+        setNow(new Date());
+        const timer = setInterval(() => {
+            setNow(new Date());
+        }, 1000);
+        return () => clearInterval(timer);
+    }, []);
 
     const [isAddModalOpen, setAddModalOpen] = useState(false);
     const [deleteRequest, setDeleteRequest] = useState<{id: string, name: string} | null>(null);
@@ -148,7 +158,7 @@ const TeamBreaksApp: React.FC<TeamBreaksAppProps> = ({ serviceId, isReadOnly, on
              <div className="flex flex-wrap justify-between items-start gap-4">
                 <div>
                      <h1 className="text-3xl font-bold" style={{color: 'var(--c-text-heading)'}}>Gestione Pause</h1>
-                     <div className="mt-2 text-sm text-gray-500 font-medium bg-white/60 px-3 py-1 rounded-full w-fit">{formatDateTime(now)}</div>
+                     <div className="mt-2 text-sm text-gray-500 font-medium bg-white/60 px-3 py-1 rounded-full w-fit tabular-nums">{formatDateTime(now)}</div>
                 </div>
                 <div className="flex items-center gap-2">
                     {!isReadOnly && currentUser?.accessLevel === 'admin' && pauseData.length > 0 &&
