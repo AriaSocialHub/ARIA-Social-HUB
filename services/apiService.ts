@@ -33,26 +33,50 @@ async function saveData(dbState: AppData): Promise<AppData> {
 }
 
 /**
- * Uploads a file to the backend blob storage.
+ * Uploads a file to the backend blob storage using a Signed Upload URL strategy.
+ * This bypasses Vercel server limits by uploading directly to Supabase.
  * @param file The File or Blob object to upload.
  * @param filename The desired name for the file.
  * @returns The public URL of the uploaded file.
  */
 async function uploadFile(file: File | Blob, filename: string): Promise<string> {
-    const response = await fetch(`/api/upload?filename=${encodeURIComponent(filename)}`, {
+    // Step 1: Request a Signed Upload URL from our API
+    const authResponse = await fetch('/api/upload', {
         method: 'POST',
         headers: {
-            'Content-Type': file.type
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ 
+            filename: filename,
+            contentType: file.type 
+        }),
+    });
+
+    if (!authResponse.ok) {
+        const errorText = await authResponse.text();
+        console.error('Failed to get signed upload URL:', errorText);
+        throw new Error("Impossibile avviare il caricamento del file.");
+    }
+
+    const { signedUrl, token, publicUrl } = await authResponse.json();
+
+    // Step 2: Upload the file directly to the storage provider using the signed URL
+    const uploadResponse = await fetch(signedUrl, {
+        method: 'PUT',
+        headers: {
+            'Content-Type': file.type,
+            'Authorization': `Bearer ${token}`
         },
         body: file,
     });
-    if (!response.ok) {
-        const errorText = await response.text();
-        console.error('File upload failed:', errorText);
-        throw new Error("Caricamento del file fallito.");
+
+    if (!uploadResponse.ok) {
+        const errorText = await uploadResponse.text();
+        console.error('Direct storage upload failed:', errorText);
+        throw new Error("Caricamento diretto su storage fallito.");
     }
-    const result = await response.json();
-    return result.url;
+
+    return publicUrl;
 }
 
 /**
