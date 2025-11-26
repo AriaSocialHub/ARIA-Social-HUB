@@ -1,7 +1,7 @@
 {
   "private": true,
   "scripts": {
-    "build": "esbuild index.tsx --bundle --outfile=bundle.js --jsx=automatic --loader:.ts=tsx"
+    "build": "esbuild index.tsx --bundle --outfile=bundle.js --jsx=automatic --loader:.ts=tsx --external:sql.js"
   },
   "dependencies": {
     "@google/genai": "^1.9.0",
