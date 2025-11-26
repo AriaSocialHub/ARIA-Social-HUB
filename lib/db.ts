@@ -112,3 +112,40 @@ export async function setDb(data: AppData) {
     throw error;
   }
 }
+
+// --- Legacy / Compatibility Exports to fix build errors in api/servicedata.ts ---
+
+export async function getServiceData(serviceId: string) {
+    const db = await getDb();
+    return db.services_data?.[serviceId] || null;
+}
+
+export async function setServiceData(serviceId: string, serviceData: any) {
+    const db = await getDb();
+    if (!db.services_data) db.services_data = {};
+    
+    // Upsert the service data
+    db.services_data[serviceId] = serviceData;
+    
+    await setDb(db);
+    return db;
+}
+
+export async function addNotification(notification: any) {
+    const db = await getDb();
+    if (!db.notifications) db.notifications = [];
+    
+    db.notifications.unshift(notification);
+    // Trim to keep size manageable
+    if (db.notifications.length > 100) {
+        db.notifications = db.notifications.slice(0, 100);
+    }
+    
+    await setDb(db);
+    return db;
+}
+
+export async function getNotifications() {
+    const db = await getDb();
+    return db.notifications || [];
+}
