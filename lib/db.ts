@@ -113,7 +113,7 @@ export async function setDb(data: AppData) {
   }
 }
 
-// --- Legacy / Compatibility Exports to fix build errors in api/servicedata.ts ---
+// --- Legacy / Compatibility Exports to fix build errors in api/servicedata.ts and api/notifications.ts ---
 
 export async function getServiceData(serviceId: string) {
     const db = await getDb();
@@ -131,21 +131,63 @@ export async function setServiceData(serviceId: string, serviceData: any) {
     return db;
 }
 
-export async function addNotification(notification: any) {
+// Updated to handle both new (1 arg) and legacy (6 args) calls
+export async function addNotification(...args: any[]) {
     const db = await getDb();
     if (!db.notifications) db.notifications = [];
     
-    db.notifications.unshift(notification);
-    // Trim to keep size manageable
-    if (db.notifications.length > 100) {
-        db.notifications = db.notifications.slice(0, 100);
+    let notificationItem: any = null;
+
+    // Check signature type
+    if (args.length === 1 && typeof args[0] === 'object') {
+        // New signature: addNotification(notificationObject)
+        notificationItem = args[0];
+    } else if (args.length >= 3) {
+        // Legacy signature: addNotification(serviceId, newData, author, action, title, itemId)
+        // Based on context from typical legacy structures
+        const [serviceId, , author, action, title, itemId] = args;
+
+        let actionText = '';
+        switch(action) {
+            case 'add': actionText = 'aggiunto'; break;
+            case 'update': actionText = 'aggiornato'; break;
+            case 'delete': actionText = 'rimosso'; break;
+            default: actionText = 'modificato';
+        }
+        
+        notificationItem = {
+            id: `notif-legacy-${Date.now()}-${Math.random()}`,
+            message: `${author} ha ${actionText} "${title || 'elemento'}" in ${serviceId}.`,
+            timestamp: new Date().toISOString(),
+            serviceId: serviceId,
+            categoryName: '', 
+            itemId: itemId,
+            readBy: [author], 
+            clearedBy: [],
+            author: author || 'Sistema'
+        };
     }
     
-    await setDb(db);
+    if (notificationItem) {
+        db.notifications.unshift(notificationItem);
+        // Trim to keep size manageable
+        if (db.notifications.length > 100) {
+            db.notifications = db.notifications.slice(0, 100);
+        }
+        await setDb(db);
+    }
+    
     return db;
 }
 
 export async function getNotifications() {
     const db = await getDb();
     return db.notifications || [];
+}
+
+export async function setNotifications(notifications: any[]) {
+    const db = await getDb();
+    db.notifications = notifications;
+    await setDb(db);
+    return db;
 }
