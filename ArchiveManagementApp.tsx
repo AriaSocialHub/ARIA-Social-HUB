@@ -45,16 +45,36 @@ const ArchiveManagementCard: React.FC<{
         
         setIsUploading(true);
         try {
-            const response = await fetch(`/api/archiveStorage?filename=${filename}`, {
-                method: 'POST',
-                body: file
+            // Step 1: Ask Server for a Signed Upload URL
+            // This bypasses Vercel's 4.5MB body limit by not sending the file to Vercel.
+            const authRes = await fetch(`/api/archiveStorage?filename=${filename}`, {
+                method: 'POST'
             });
-            if (!response.ok) throw new Error('Upload failed');
+            
+            if (!authRes.ok) {
+                const err = await authRes.json();
+                throw new Error(err.message || 'Failed to get upload permissions');
+            }
+
+            const { signedUrl, token } = await authRes.json();
+
+            // Step 2: Upload directly to Supabase using the signed URL
+            const uploadRes = await fetch(signedUrl, {
+                method: 'PUT',
+                body: file,
+                headers: {
+                    'Content-Type': 'application/vnd.sqlite3',
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+
+            if (!uploadRes.ok) throw new Error('Direct upload to storage failed');
+
             await handleCheckStatus();
             alert('Database caricato con successo!');
-        } catch (error) {
+        } catch (error: any) {
             console.error(error);
-            alert('Errore durante il caricamento.');
+            alert(`Errore durante il caricamento: ${error.message}`);
         } finally {
             setIsUploading(false);
             if(fileInputRef.current) fileInputRef.current.value = '';

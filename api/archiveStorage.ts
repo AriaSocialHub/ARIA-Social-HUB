@@ -2,27 +2,6 @@
 import { supabaseAdmin } from '../lib/supabaseClient';
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 
-declare var Buffer: any;
-
-async function streamToBuffer(readableStream: any): Promise<any> {
-  return new Promise((resolve, reject) => {
-    const chunks: any[] = [];
-    readableStream.on('data', (chunk: any) => {
-      chunks.push(chunk);
-    });
-    readableStream.on('end', () => {
-      resolve(Buffer.concat(chunks));
-    });
-    readableStream.on('error', reject);
-  });
-}
-
-export const config = {
-  api: {
-    bodyParser: false,
-  },
-};
-
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   // Handle Signed URL generation for download (GET)
   if (req.method === 'GET') {
@@ -44,7 +23,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }
   }
 
-  // Handle Upload (POST)
+  // Handle Signed Upload URL generation (POST)
+  // Instead of uploading the file here (which hits Vercel 4.5MB limit),
+  // we generate a secure URL so the client can upload directly to Supabase.
   if (req.method === 'POST') {
       const filename = req.query.filename as string;
       if (!filename) {
@@ -52,20 +33,23 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }
 
       try {
-        const fileBuffer = await streamToBuffer(req);
-        
-        const { error } = await supabaseAdmin.storage
+        // Generate a signed upload URL valid for 1 hour.
+        // This allows the client to PUT the file directly to Supabase.
+        const { data, error } = await supabaseAdmin.storage
           .from('archives')
-          .upload(filename, fileBuffer, {
-            contentType: 'application/vnd.sqlite3',
-            upsert: true,
-          });
+          .createSignedUploadUrl(filename);
 
         if (error) throw error;
 
-        return res.status(200).json({ message: 'File uploaded successfully' });
+        // Return the signed URL and the token required for the upload headers
+        return res.status(200).json({ 
+            signedUrl: data.signedUrl, 
+            token: data.token,
+            path: data.path 
+        });
+
       } catch (error: any) {
-        console.error('Archive Upload Error:', error);
+        console.error('Archive Upload Setup Error:', error);
         return res.status(500).json({ message: `Internal Server Error: ${error.message}` });
       }
   }
