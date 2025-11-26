@@ -1,32 +1,52 @@
 
-import initSqlJs from 'sql.js';
-import type { Database } from 'sql.js';
 import { ArchiveItem } from '../types';
 
 let SQL: any;
 
-// Initialize SQL.js
-const initSQL = async () => {
-    if (!SQL) {
-        // Use CDN for wasm binary to avoid build/copy issues in Vercel
-        SQL = await initSqlJs({
-            locateFile: (file: string) => `https://sql.js.org/dist/${file}`
-        });
-    }
-    return SQL;
+const loadSqlJsLib = (): Promise<any> => {
+    if (SQL) return Promise.resolve(SQL);
+
+    return new Promise((resolve, reject) => {
+        // Check if already loaded via global
+        if ((window as any).initSqlJs) {
+            (window as any).initSqlJs({
+                locateFile: (file: string) => `https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.8.0/${file}`
+            }).then((sql: any) => {
+                SQL = sql;
+                resolve(SQL);
+            }).catch(reject);
+            return;
+        }
+
+        const script = document.createElement('script');
+        script.src = 'https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.8.0/sql-wasm.js';
+        script.async = true;
+        script.onload = () => {
+            if ((window as any).initSqlJs) {
+                 (window as any).initSqlJs({
+                    locateFile: (file: string) => `https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.8.0/${file}`
+                }).then((sql: any) => {
+                    SQL = sql;
+                    resolve(SQL);
+                }).catch(reject);
+            } else {
+                reject(new Error('SQL.js loaded but initSqlJs not found'));
+            }
+        };
+        script.onerror = () => reject(new Error('Failed to load SQL.js script'));
+        document.body.appendChild(script);
+    });
 };
 
-// Function to download DB file into memory
-export const loadDatabase = async (signedUrl: string): Promise<Database> => {
-    const sql = await initSQL();
+export const loadDatabase = async (signedUrl: string): Promise<any> => {
+    const sql = await loadSqlJsLib();
     const response = await fetch(signedUrl);
     if (!response.ok) throw new Error('Failed to download database file');
     const buf = await response.arrayBuffer();
     return new sql.Database(new Uint8Array(buf));
 };
 
-// Function to query the database
-export const queryArchive = (db: Database, params: {
+export const queryArchive = (db: any, params: {
     search?: string,
     filters?: {
         utenti?: string,
@@ -62,7 +82,7 @@ export const queryArchive = (db: Database, params: {
         queryParams.push(params.search, params.search);
     }
     
-    query += " ORDER BY DataAggiornamento DESC LIMIT 500"; // Limit results for performance
+    query += " ORDER BY DataAggiornamento DESC LIMIT 500";
 
     const stmt = db.prepare(query);
     stmt.bind(queryParams);
@@ -87,15 +107,19 @@ export const queryArchive = (db: Database, params: {
     return results;
 };
 
-export const getDistinctValues = (db: Database, column: string): string[] => {
-    const res = db.exec(`SELECT DISTINCT "${column}" FROM archivio ORDER BY "${column}" ASC`);
-    if (res.length > 0 && res[0].values) {
-        return res[0].values.flat().map(v => String(v)).filter(v => v !== 'null' && v !== '');
+export const getDistinctValues = (db: any, column: string): string[] => {
+    try {
+        const res = db.exec(`SELECT DISTINCT "${column}" FROM archivio ORDER BY "${column}" ASC`);
+        if (res.length > 0 && res[0].values) {
+            return res[0].values.flat().map((v: any) => String(v)).filter((v: string) => v !== 'null' && v !== '');
+        }
+    } catch (e) {
+        console.warn(`Could not get distinct values for ${column}`, e);
     }
     return [];
 };
 
-export const getDbMetadata = (db: Database): { count: number, lastUpdate: string | null } => {
+export const getDbMetadata = (db: any): { count: number, lastUpdate: string | null } => {
     try {
         const countRes = db.exec("SELECT COUNT(*) FROM archivio");
         const count = countRes[0].values[0][0] as number;
