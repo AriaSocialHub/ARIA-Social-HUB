@@ -8,12 +8,14 @@
     "@supabase/supabase-js": "^2.43.5",
     "lucide-react": "^0.400.0",
     "react": "^19.1.0",
-    "react-dom": "^19.1.0"
+    "react-dom": "^19.1.0",
+    "sql.js": "^1.10.3"
   },
   "devDependencies": {
     "@types/node": "^20.14.9",
     "@types/react": "^18.3.3",
     "@types/react-dom": "^18.3.0",
+    "@types/sql.js": "^1.4.9",
     "@vercel/node": "^3.2.0",
     "esbuild": "^0.21.4",
     "typescript": "^5.5.2",

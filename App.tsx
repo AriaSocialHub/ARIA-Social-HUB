@@ -2,8 +2,10 @@
 
 
 
+
+
 import React, { useState, useCallback, useEffect, useMemo, useRef } from 'react';
-import { LogOut, Eye, FileUp, ChevronDown, LayoutGrid, Folder, Wrench, Bell, Menu, X, Bot, Users as UsersIcon, Search } from 'lucide-react';
+import { LogOut, Eye, FileUp, ChevronDown, LayoutGrid, Folder, Wrench, Bell, Menu, X, Bot, Users as UsersIcon, Search, Database } from 'lucide-react';
 import UploadApp from './UploadApp';
 import Login from './components/Login';
 import { services, serviceMap } from './services/registry';
@@ -84,6 +86,7 @@ const App: React.FC = () => {
 
   const documentServices = useMemo(() => services.filter(s => s.category === 'document'), []);
   const utilityServices = useMemo(() => services.filter(s => s.category === 'utility'), []);
+  const archiveServices = useMemo(() => services.filter(s => s.category === 'archive_rl'), []);
   
   const UserAvatar = useMemo(() => getAvatar(currentUser?.avatar), [currentUser?.avatar]);
   
@@ -161,7 +164,7 @@ const App: React.FC = () => {
     setIsAdminViewing(prev => !prev);
     // When switching to moderator view, if we are on a page that is not available for moderators,
     // we should redirect to the dashboard.
-    const currentViewIsHiddenForModerator = serviceMap[view]?.id === 'commentAnalysis' || view === 'upload';
+    const currentViewIsHiddenForModerator = serviceMap[view]?.id === 'commentAnalysis' || view === 'upload' || serviceMap[view]?.id === 'archiveManagement';
     if (!isAdminViewing && currentViewIsHiddenForModerator) {
       setView('dashboard');
     }
@@ -244,7 +247,6 @@ const App: React.FC = () => {
   const isUtilityHidden = (service: Service<any>) => {
     if (service.id === 'userManagement') return true; // Handled separately in settings menu
     // The following services are hidden in read-only mode (for moderators or admin in moderator view).
-    // "Archivio News" is EXCLUDED from this rule, making it visible.
     const readOnlyHiddenServices = ['commentAnalysis'];
     if (isReadOnly && readOnlyHiddenServices.includes(service.id)) {
         return true;
@@ -307,6 +309,27 @@ const App: React.FC = () => {
                                     </MenuItem>
                                 );
                             })}
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="relative" ref={openMenu === 'archive' ? menuRef : null}>
+                        <NavItem onClick={() => handleMenuToggle('archive')} active={openMenu === 'archive' || archiveServices.some(s => s.id === view)}>
+                            <Database className="h-5 w-5" />
+                            <span>Archivio RL</span>
+                            <ChevronDown className={`h-4 w-4 transition-transform duration-200 ${openMenu === 'archive' ? 'rotate-180' : ''}`} />
+                        </NavItem>
+                        <div className={`menu-panel w-60 ${openMenu === 'archive' ? 'open' : ''}`}>
+                            <div className="p-2 space-y-1">
+                                {archiveServices.map((service, index) => {
+                                    if (service.id === 'archiveManagement' && isReadOnly) return null;
+                                    return (
+                                        <MenuItem key={service.id} onClick={() => handleViewAndCloseMenu(service.id)} style={{ animationDelay: `${index * 30}ms`}}>
+                                            <service.icon className="h-5 w-5 text-gray-500" />
+                                            <span>{service.name}</span>
+                                        </MenuItem>
+                                    );
+                                })}
                             </div>
                         </div>
                     </div>
@@ -450,6 +473,30 @@ const App: React.FC = () => {
                                         <div className="pl-8 pt-1 pb-1 space-y-1">
                                             {utilityServices.map(service => {
                                                 if (isUtilityHidden(service)) return null;
+                                                return (
+                                                    <MenuItem key={service.id} onClick={() => handleViewAndCloseMenu(service.id)} className={`${service.id === view ? 'bg-gray-100' : ''}`}>
+                                                        <service.icon className="h-5 w-5 text-gray-500" />
+                                                        <span className="text-sm text-gray-800">{service.name}</span>
+                                                    </MenuItem>
+                                                );
+                                            })}
+                                        </div>
+                                    )}
+                                </div>
+
+                                {/* Archive Section */}
+                                <div>
+                                    <MenuItem onClick={() => setMobileSubMenu(mobileSubMenu === 'archive' ? null : 'archive')} className={`${archiveServices.some(s => s.id === view) && mobileSubMenu !== 'archive' ? 'bg-gray-100' : ''} !justify-between w-full`}>
+                                        <div className="flex items-center gap-3">
+                                            <Database className="h-6 w-6 text-[var(--c-primary-light)]" />
+                                            <span className="font-medium text-gray-900">Archivio RL</span>
+                                        </div>
+                                        <ChevronDown className={`h-5 w-5 text-gray-500 transition-transform ${mobileSubMenu === 'archive' ? 'rotate-180' : ''}`} />
+                                    </MenuItem>
+                                    {mobileSubMenu === 'archive' && (
+                                        <div className="pl-8 pt-1 pb-1 space-y-1">
+                                            {archiveServices.map(service => {
+                                                if (service.id === 'archiveManagement' && isReadOnly) return null;
                                                 return (
                                                     <MenuItem key={service.id} onClick={() => handleViewAndCloseMenu(service.id)} className={`${service.id === view ? 'bg-gray-100' : ''}`}>
                                                         <service.icon className="h-5 w-5 text-gray-500" />

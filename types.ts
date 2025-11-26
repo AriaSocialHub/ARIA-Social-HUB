@@ -3,6 +3,8 @@
 
 
 
+
+
 import React from 'react';
 
 export interface Service<T> {
@@ -12,7 +14,7 @@ export interface Service<T> {
   description: string;
   parser?: (file: File) => Promise<Record<string, T[]>>;
   appComponent: React.FC<any>;
-  category?: 'document' | 'utility' | 'core';
+  category?: 'document' | 'utility' | 'core' | 'archive_rl';
   detailViews?: Record<string, React.FC<any>>;
   itemNoun?: string;
   itemNounPlural?: string;
@@ -220,6 +222,20 @@ export interface NavigationTarget {
   serviceId: string;
   categoryName?: string;
   itemId?: string;
+}
+
+// --- Archivio RL Types ---
+export interface ArchiveItem {
+  id: number; // SQLite rowid
+  url: string;
+  utenti: string;
+  macro_area: string;
+  argomento: string;
+  sottocategoria: string;
+  titolo: string;
+  testo: string;
+  data_ultimo_aggiornamento_informazioni: string;
+  data_aggiornamento: string;
 }
 
 // --- DB structure ---

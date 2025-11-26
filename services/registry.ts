@@ -1,6 +1,8 @@
 
+
+
 import { Service } from '../types.ts';
-import { Archive, FileText, ClipboardCheck, CalendarDays, Clock, LayoutGrid, TrendingUp, Users, FilePenLine, BookMarked, Database, HeartPulse, Rss, Bird, Telescope } from 'lucide-react';
+import { Archive, FileText, ClipboardCheck, CalendarDays, Clock, LayoutGrid, TrendingUp, Users, FilePenLine, BookMarked, Database, HeartPulse, Rss, Bird, Telescope, DatabaseZap, Search } from 'lucide-react';
 
 // Parsers
 import { parseXLSX } from './xlsxParser.ts';
@@ -23,6 +25,8 @@ import ManualTicketApp from '../ManualTicketApp.tsx';
 import NewsArchiveApp from '../NewsArchiveApp.tsx';
 import RepositoryApp from '../RepositoryApp.tsx';
 import UserManagementApp from '../UserManagementApp.tsx';
+import ArchiveManagementApp from '../ArchiveManagementApp.tsx';
+import ArchiveConsultationApp from '../ArchiveConsultationApp.tsx';
 
 
 // Detail Views
@@ -184,6 +188,22 @@ export const services: Service<any>[] = [
     description: "Gestisci gli account utente dell'applicazione.",
     appComponent: UserManagementApp,
     category: 'utility',
+  },
+  {
+    id: 'archiveManagement',
+    name: 'Gestione',
+    icon: DatabaseZap,
+    description: "Gestione dei database Archivio RL.",
+    appComponent: ArchiveManagementApp,
+    category: 'archive_rl',
+  },
+  {
+    id: 'archiveConsultation',
+    name: 'Consultazione',
+    icon: Search,
+    description: "Ricerca e consultazione Archivio RL.",
+    appComponent: ArchiveConsultationApp,
+    category: 'archive_rl',
   },
 ];
 
