@@ -230,17 +230,18 @@ export const queryArchive = (db: any, params: {
         const results: ArchiveItem[] = [];
         while (stmt.step()) {
             const row = stmt.getAsObject();
+            // Use safe defaults for all string fields to prevent null crashes
             results.push({
                 id: row.id as number,
-                url: row.URL as string,
-                utenti: row.Utenti as string,
-                macro_area: row['Macro-area'] as string,
-                argomento: row.Argomento as string,
-                sottocategoria: row.Sottocategoria as string,
-                titolo: row.Titolo as string,
-                testo: row.Testo as string,
-                data_ultimo_aggiornamento_informazioni: row['Data Ultimo Aggiornamento Informazioni'] as string,
-                data_aggiornamento: row.DataAggiornamento as string
+                url: (row.URL as string) || '',
+                utenti: (row.Utenti as string) || '',
+                macro_area: (row['Macro-area'] as string) || '',
+                argomento: (row.Argomento as string) || '',
+                sottocategoria: (row.Sottocategoria as string) || '',
+                titolo: (row.Titolo as string) || 'Senza Titolo',
+                testo: (row.Testo as string) || '',
+                data_ultimo_aggiornamento_informazioni: (row['Data Ultimo Aggiornamento Informazioni'] as string) || '',
+                data_aggiornamento: (row.DataAggiornamento as string) || ''
             });
         }
         stmt.free();
@@ -257,7 +258,11 @@ export const deduplicateResults = (items: ArchiveItem[]): ArchiveItem[] => {
     const seen = new Set<string>();
     return items.filter(item => {
         // Create a unique key based on title and update date (ignore URL differences)
-        const key = `${item.titolo.toLowerCase()}|${item.data_ultimo_aggiornamento_informazioni}`;
+        // Safe access to properties
+        const t = item.titolo ? item.titolo.toLowerCase() : '';
+        const d = item.data_ultimo_aggiornamento_informazioni || '';
+        const key = `${t}|${d}`;
+        
         if (seen.has(key)) {
             return false;
         }

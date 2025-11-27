@@ -115,46 +115,57 @@ const ArchiveConsultationApp: React.FC = () => {
 
     // Perform Search Query
     const runQuery = useCallback(() => {
-        const { RL, LN } = dbInstances;
-        if (!RL && !LN) return;
+        try {
+            const { RL, LN } = dbInstances;
+            if (!RL && !LN) return;
 
-        let resultsRL: ArchiveItem[] = [];
-        let resultsLN: ArchiveItem[] = [];
+            let resultsRL: ArchiveItem[] = [];
+            let resultsLN: ArchiveItem[] = [];
 
-        const commonParams = {
-            search: searchText,
-            searchScope,
-            years: selectedYears,
-            filters
-        };
-
-        if ((activeDbMode === 'archivio.sqlite' || activeDbMode === 'both') && RL) {
-            resultsRL = queryArchive(RL, commonParams, 'RL');
-        }
-
-        if ((activeDbMode === 'archivio-LN.sqlite' || activeDbMode === 'both') && LN) {
-            resultsLN = queryArchive(LN, commonParams, 'LN');
-        }
-
-        // Merge
-        let combined = [...resultsRL, ...resultsLN];
-
-        // Deduplicate
-        combined = deduplicateResults(combined);
-
-        // Sort by date desc
-        combined.sort((a, b) => {
-            // Helper to parse Italian date for sorting
-            const parseIt = (d: string) => {
-                const parts = d.split('/');
-                if (parts.length === 3) return new Date(`${parts[2]}-${parts[1]}-${parts[0]}`).getTime();
-                return 0;
+            const commonParams = {
+                search: searchText,
+                searchScope,
+                years: selectedYears,
+                filters
             };
-            return parseIt(b.data_ultimo_aggiornamento_informazioni) - parseIt(a.data_ultimo_aggiornamento_informazioni);
-        });
 
-        setAllMergedResults(combined);
-        setPage(1); // Reset to page 1 on new search
+            if ((activeDbMode === 'archivio.sqlite' || activeDbMode === 'both') && RL) {
+                resultsRL = queryArchive(RL, commonParams, 'RL');
+            }
+
+            if ((activeDbMode === 'archivio-LN.sqlite' || activeDbMode === 'both') && LN) {
+                resultsLN = queryArchive(LN, commonParams, 'LN');
+            }
+
+            // Merge
+            let combined = [...resultsRL, ...resultsLN];
+
+            // Deduplicate
+            combined = deduplicateResults(combined);
+
+            // Sort by date desc
+            combined.sort((a, b) => {
+                // Helper to parse Italian date for sorting
+                const parseIt = (d: string) => {
+                    if (!d) return 0;
+                    try {
+                        const parts = d.split('/');
+                        if (parts.length === 3) return new Date(`${parts[2]}-${parts[1]}-${parts[0]}`).getTime();
+                    } catch (e) {
+                        return 0;
+                    }
+                    return 0;
+                };
+                return parseIt(b.data_ultimo_aggiornamento_informazioni) - parseIt(a.data_ultimo_aggiornamento_informazioni);
+            });
+
+            setAllMergedResults(combined);
+            setPage(1); // Reset to page 1 on new search
+        } catch (error) {
+            console.error("Error processing query results:", error);
+            // Fail gracefully
+            setAllMergedResults([]);
+        }
     }, [dbInstances, activeDbMode, searchText, searchScope, selectedYears, filters]);
 
     // Trigger query on dependency change
