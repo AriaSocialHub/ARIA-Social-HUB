@@ -241,7 +241,8 @@ export const queryArchive = (db: any, params: {
                 titolo: (row.Titolo as string) || 'Senza Titolo',
                 testo: (row.Testo as string) || '',
                 data_ultimo_aggiornamento_informazioni: (row['Data Ultimo Aggiornamento Informazioni'] as string) || '',
-                data_aggiornamento: (row.DataAggiornamento as string) || ''
+                data_aggiornamento: (row.DataAggiornamento as string) || '',
+                source: dbType
             });
         }
         stmt.free();

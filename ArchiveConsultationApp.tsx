@@ -87,18 +87,19 @@ const ArchiveConsultationApp: React.FC = () => {
         const currentDb = activeDbMode === 'archivio.sqlite' ? RL : (activeDbMode === 'archivio-LN.sqlite' ? LN : null);
 
         if (activeDbMode === 'both') {
-            // For combined mode, we can merge distinct values or just simplify filters.
-            // Simplification: Show merged Macro-areas and Years. Disable specific RL filters.
-            const yearsRL = RL ? getAvailableYears(RL, 'RL') : [];
-            const yearsLN = LN ? getAvailableYears(LN, 'LN') : [];
+            const usersRL = RL ? getDistinctValues(RL, 'Utenti') : [];
             const macroRL = RL ? getDistinctValues(RL, 'Macro-area') : [];
             const macroLN = LN ? getDistinctValues(LN, 'Macro-area') : [];
+            const argRL = RL ? getDistinctValues(RL, 'Argomento', filters) : [];
+            const subRL = RL ? getDistinctValues(RL, 'Sottocategoria', filters) : [];
+            const yearsRL = RL ? getAvailableYears(RL, 'RL') : [];
+            const yearsLN = LN ? getAvailableYears(LN, 'LN') : [];
 
             setOptions({
-                utenti: [], // Disabled in combined
+                utenti: usersRL,
                 macro_area: Array.from(new Set([...macroRL, ...macroLN])).sort(),
-                argomento: [], // Disabled
-                sottocategoria: [], // Disabled
+                argomento: argRL,
+                sottocategoria: subRL,
                 years: Array.from(new Set([...yearsRL, ...yearsLN])).sort().reverse()
             });
         } else if (currentDb) {
@@ -213,10 +214,10 @@ const ArchiveConsultationApp: React.FC = () => {
             {/* DB Selection */}
             <div className="flex flex-wrap gap-4 justify-center">
                  <button onClick={() => { setActiveDbMode('archivio.sqlite'); handleReset(); }} className={`flex items-center gap-2 px-5 py-3 rounded-lg font-semibold transition-all ${activeDbMode === 'archivio.sqlite' ? 'bg-[#04434E] text-white shadow-md scale-105' : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-50'}`}>
-                    <Database size={20} /> Sito RL
+                    <Database size={20} /> Portale Regione Lombardia
                 </button>
                 <button onClick={() => { setActiveDbMode('archivio-LN.sqlite'); handleReset(); }} className={`flex items-center gap-2 px-5 py-3 rounded-lg font-semibold transition-all ${activeDbMode === 'archivio-LN.sqlite' ? 'bg-[#04434E] text-white shadow-md scale-105' : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-50'}`}>
-                    <Database size={20} /> Lombardia Notizie
+                    <Database size={20} /> Portale Lombardia Notizie
                 </button>
                 <button onClick={() => { setActiveDbMode('both'); handleReset(); }} className={`flex items-center gap-2 px-5 py-3 rounded-lg font-semibold transition-all ${activeDbMode === 'both' ? 'bg-[#04434E] text-white shadow-md scale-105 ring-2 ring-[#04434E] ring-offset-2' : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-50'}`}>
                     <Layers size={20} /> Entrambi (Ricerca Globale)
@@ -243,7 +244,7 @@ const ArchiveConsultationApp: React.FC = () => {
                         </div>
 
                         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                            {!isLN && !isCombined && (
+                            {!isLN && (
                                 <select className="form-input" value={filters.utenti} onChange={e => { setFilters(p => ({...p, utenti: e.target.value, macro_area: 'Tutte', argomento: 'Tutti'})); }}>
                                     <option value="Tutti">Utenti (Tutti)</option>
                                     {options.utenti.map(o => <option key={o} value={o}>{o}</option>)}
@@ -255,7 +256,7 @@ const ArchiveConsultationApp: React.FC = () => {
                                 {options.macro_area.map(o => <option key={o} value={o}>{o}</option>)}
                             </select>
 
-                            {!isLN && !isCombined && (
+                            {!isLN && (
                                 <>
                                     <select className="form-input" value={filters.argomento} onChange={e => { setFilters(p => ({...p, argomento: e.target.value})); }} disabled={options.argomento.length === 0}>
                                         <option value="Tutti">Argomento (Tutti)</option>
@@ -313,8 +314,13 @@ const ArchiveConsultationApp: React.FC = () => {
                         </div>
 
                         {displayedResults.map((item) => (
-                            <div key={item.id} className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm hover:shadow-md transition-shadow">
-                                <h3 className="text-xl font-bold text-gray-900 mb-2">{item.titolo}</h3>
+                            <div key={item.id} className={`bg-white p-6 rounded-xl border shadow-sm hover:shadow-md transition-all relative overflow-hidden ${item.source === 'LN' ? 'border-orange-200 hover:border-orange-400' : 'border-gray-200 hover:border-[#04434E]'}`}>
+                                {isCombined && (
+                                    <div className={`absolute top-0 left-0 text-white text-[10px] font-bold px-3 py-1 rounded-br-lg ${item.source === 'LN' ? 'bg-orange-500' : 'bg-[#04434E]'}`}>
+                                        {item.source === 'LN' ? 'Portale Lombardia Notizie' : 'Portale Regione Lombardia'}
+                                    </div>
+                                )}
+                                <h3 className="text-xl font-bold text-gray-900 mb-2 mt-2">{item.titolo}</h3>
                                 <div className="text-xs text-gray-500 mb-4 flex flex-wrap gap-x-4 gap-y-1">
                                     <span><strong>Data:</strong> {item.data_ultimo_aggiornamento_informazioni}</span>
                                     {item.utenti && <span><strong>Utenti:</strong> {item.utenti}</span>}
