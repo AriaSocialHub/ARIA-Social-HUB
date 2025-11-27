@@ -13,7 +13,6 @@ const ArchiveContentModal: React.FC<ArchiveContentModalProps> = ({ item, onClose
     const [searchTerm, setSearchTerm] = useState('');
 
     useEffect(() => {
-        // Removed scroll locking to allow background page scrolling as requested
         const handleOutsideClick = (event: MouseEvent) => {
             if (modalRef.current && !modalRef.current.contains(event.target as Node)) {
                 onClose();
@@ -36,21 +35,27 @@ const ArchiveContentModal: React.FC<ArchiveContentModalProps> = ({ item, onClose
         );
     }, [item.testo, searchTerm]);
 
+    const isLNItem = item.source === 'LN';
+    const buttonClass = isLNItem 
+        ? 'bg-[#2D9C92] text-white hover:bg-[#20756d]' 
+        : 'bg-[#04434E] text-white hover:bg-[#2D9C92]';
+    const titleColor = isLNItem ? 'text-[#2D9C92]' : 'text-[#04434E]';
+
     return (
-        <div className="fixed inset-0 z-[9999] bg-black/60 flex justify-center items-start p-4 pt-10 animate-fadeIn overflow-y-auto">
-            <div ref={modalRef} className="bg-white rounded-xl shadow-2xl w-full max-w-4xl min-h-[60vh] flex flex-col relative overflow-hidden my-auto">
+        <div className="fixed inset-0 z-[9999] bg-black/60 flex justify-center items-start p-4 pt-10 animate-fadeIn overflow-y-auto pointer-events-none">
+            <div ref={modalRef} className="bg-white rounded-xl shadow-2xl w-full max-w-4xl min-h-[60vh] flex flex-col relative overflow-hidden my-auto pointer-events-auto">
                 
                 {/* Header */}
                 <div className="p-6 border-b flex flex-col sm:flex-row justify-between items-start bg-gray-50 shrink-0 gap-4">
                     <div className="flex-grow pr-4">
-                        <h2 className="text-2xl font-bold text-[#04434E] leading-tight">{item.titolo}</h2>
+                        <h2 className={`text-2xl font-bold ${titleColor} leading-tight`}>{item.titolo}</h2>
                         <div className="flex items-center gap-2 text-sm text-gray-500 mt-2">
                             <Calendar size={14} />
                             <span>Ultimo agg: {item.data_ultimo_aggiornamento_informazioni}</span>
                         </div>
                     </div>
                     <div className="flex items-center gap-3 self-end sm:self-start shrink-0">
-                        <a href={item.url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 px-4 py-2 bg-[#04434E] text-white rounded-lg hover:bg-[#2D9C92] transition-colors font-semibold text-sm">
+                        <a href={item.url} target="_blank" rel="noopener noreferrer" className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors font-semibold text-sm ${buttonClass}`}>
                             <ExternalLink size={16} /> Pagina Originale
                         </a>
                         <button onClick={onClose} className="p-2 hover:bg-gray-200 rounded-full transition-colors">

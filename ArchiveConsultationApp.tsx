@@ -216,7 +216,7 @@ const ArchiveConsultationApp: React.FC = () => {
                  <button onClick={() => { setActiveDbMode('archivio.sqlite'); handleReset(); }} className={`flex items-center gap-2 px-5 py-3 rounded-lg font-semibold transition-all ${activeDbMode === 'archivio.sqlite' ? 'bg-[#04434E] text-white shadow-md scale-105' : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-50'}`}>
                     <Database size={20} /> Portale Regione Lombardia
                 </button>
-                <button onClick={() => { setActiveDbMode('archivio-LN.sqlite'); handleReset(); }} className={`flex items-center gap-2 px-5 py-3 rounded-lg font-semibold transition-all ${activeDbMode === 'archivio-LN.sqlite' ? 'bg-[#04434E] text-white shadow-md scale-105' : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-50'}`}>
+                <button onClick={() => { setActiveDbMode('archivio-LN.sqlite'); handleReset(); }} className={`flex items-center gap-2 px-5 py-3 rounded-lg font-semibold transition-all ${activeDbMode === 'archivio-LN.sqlite' ? 'bg-[#2D9C92] text-white shadow-md scale-105' : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-50'}`}>
                     <Database size={20} /> Portale Lombardia Notizie
                 </button>
                 <button onClick={() => { setActiveDbMode('both'); handleReset(); }} className={`flex items-center gap-2 px-5 py-3 rounded-lg font-semibold transition-all ${activeDbMode === 'both' ? 'bg-[#04434E] text-white shadow-md scale-105 ring-2 ring-[#04434E] ring-offset-2' : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-50'}`}>
@@ -313,34 +313,41 @@ const ArchiveConsultationApp: React.FC = () => {
                             <p className="text-gray-700 font-medium">Trovati {allMergedResults.length} risultati. Pagina {page} di {totalPages || 1}</p>
                         </div>
 
-                        {displayedResults.map((item) => (
-                            <div key={item.id} className={`bg-white p-6 rounded-xl border shadow-sm hover:shadow-md transition-all relative overflow-hidden ${item.source === 'LN' ? 'border-orange-200 hover:border-orange-400' : 'border-gray-200 hover:border-[#04434E]'}`}>
-                                {isCombined && (
-                                    <div className={`absolute top-0 left-0 text-white text-[10px] font-bold px-3 py-1 rounded-br-lg ${item.source === 'LN' ? 'bg-orange-500' : 'bg-[#04434E]'}`}>
-                                        {item.source === 'LN' ? 'Portale Lombardia Notizie' : 'Portale Regione Lombardia'}
+                        {displayedResults.map((item) => {
+                            const isLNItem = item.source === 'LN';
+                            const borderClass = isLNItem ? 'border-[#2D9C92] hover:border-[#2D9C92]' : 'border-[#04434E] hover:border-[#04434E]';
+                            const badgeBg = isLNItem ? 'bg-[#2D9C92]' : 'bg-[#04434E]';
+                            const buttonClass = isLNItem 
+                                ? 'bg-[#2D9C92] text-white hover:bg-[#20756d]' 
+                                : 'bg-[#04434E] text-white hover:bg-[#2D9C92]';
+
+                            return (
+                                <div key={item.id} className={`bg-white p-6 rounded-xl border shadow-sm hover:shadow-md transition-all relative overflow-hidden ${borderClass} border`}>
+                                    <div className={`absolute top-0 left-0 text-white text-[10px] font-bold px-3 py-1 rounded-br-lg ${badgeBg}`}>
+                                        {isLNItem ? 'Portale Lombardia Notizie' : 'Portale Regione Lombardia'}
                                     </div>
-                                )}
-                                <h3 className="text-xl font-bold text-gray-900 mb-2 mt-2">{item.titolo}</h3>
-                                <div className="text-xs text-gray-500 mb-4 flex flex-wrap gap-x-4 gap-y-1">
-                                    <span><strong>Data:</strong> {item.data_ultimo_aggiornamento_informazioni}</span>
-                                    {item.utenti && <span><strong>Utenti:</strong> {item.utenti}</span>}
-                                    <span><strong>Macro-area:</strong> {item.macro_area}</span>
-                                    {item.argomento && <span><strong>Argomento:</strong> {item.argomento}</span>}
+                                    <h3 className="text-xl font-bold text-gray-900 mb-2 mt-2">{item.titolo}</h3>
+                                    <div className="text-xs text-gray-500 mb-4 flex flex-wrap gap-x-4 gap-y-1">
+                                        <span><strong>Data:</strong> {item.data_ultimo_aggiornamento_informazioni}</span>
+                                        {item.utenti && <span><strong>Utenti:</strong> {item.utenti}</span>}
+                                        <span><strong>Macro-area:</strong> {item.macro_area}</span>
+                                        {item.argomento && <span><strong>Argomento:</strong> {item.argomento}</span>}
+                                    </div>
+                                    <p className="text-gray-600 mb-6 line-clamp-3">{item.testo}</p>
+                                    <div className="flex flex-wrap gap-3">
+                                        <a href={item.url} target="_blank" rel="noopener noreferrer" className={`flex items-center gap-2 px-4 py-2 rounded-md font-semibold transition-colors ${buttonClass}`}>
+                                            <ExternalLink size={16} /> Pagina Originale
+                                        </a>
+                                        <button onClick={() => setSelectedItem(item)} className={`flex items-center gap-2 px-4 py-2 rounded-md font-semibold transition-colors ${buttonClass}`}>
+                                            <BookOpen size={16} /> Leggi Contenuto
+                                        </button>
+                                        <button onClick={() => {navigator.clipboard.writeText(item.url); alert('URL Copiato!')}} className={`flex items-center gap-2 px-4 py-2 rounded-md font-semibold transition-colors ${buttonClass}`}>
+                                            <Copy size={16} /> Copia URL
+                                        </button>
+                                    </div>
                                 </div>
-                                <p className="text-gray-600 mb-6 line-clamp-3">{item.testo}</p>
-                                <div className="flex flex-wrap gap-3">
-                                    <a href={item.url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 px-4 py-2 bg-[#04434E] text-white rounded-md font-semibold hover:bg-[#2D9C92] transition-colors">
-                                        <ExternalLink size={16} /> Pagina Originale
-                                    </a>
-                                    <button onClick={() => setSelectedItem(item)} className="flex items-center gap-2 px-4 py-2 bg-[#04434E] text-white rounded-md font-semibold hover:bg-[#2D9C92] transition-colors">
-                                        <BookOpen size={16} /> Leggi Contenuto
-                                    </button>
-                                    <button onClick={() => {navigator.clipboard.writeText(item.url); alert('URL Copiato!')}} className="flex items-center gap-2 px-4 py-2 bg-[#04434E] text-white rounded-md font-semibold hover:bg-[#2D9C92] transition-colors">
-                                        <Copy size={16} /> Copia URL
-                                    </button>
-                                </div>
-                            </div>
-                        ))}
+                            );
+                        })}
                         
                         {displayedResults.length === 0 && (
                             <div className="text-center py-16 text-gray-500 bg-white rounded-xl border border-dashed border-gray-300">
