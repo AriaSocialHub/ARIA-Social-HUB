@@ -22,7 +22,9 @@ const ArchiveManagementCard: React.FC<{
             const { signedUrl } = await res.json();
             
             // Load DB in memory to check stats
-            const db = await loadDatabase(signedUrl, filename);
+            // IMPORTANT: Pass false for useCache so we get a fresh instance and don't affect the global cache
+            // which might be in use by the Consultation page.
+            const db = await loadDatabase(signedUrl, filename, false);
             const meta = getDbMetadata(db);
             setMetadata(meta);
             db.close();
