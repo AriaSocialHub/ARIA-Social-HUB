@@ -1,7 +1,7 @@
 
 import React, { useEffect, useRef, useState, useMemo } from 'react';
 import { ArchiveItem } from '../../types';
-import { X, Calendar, Search } from 'lucide-react';
+import { X, Calendar, Search, ExternalLink } from 'lucide-react';
 
 interface ArchiveContentModalProps {
     item: ArchiveItem;
@@ -13,7 +13,6 @@ const ArchiveContentModal: React.FC<ArchiveContentModalProps> = ({ item, onClose
     const [searchTerm, setSearchTerm] = useState('');
 
     useEffect(() => {
-        // Lock body scroll
         document.body.style.overflow = 'hidden';
         const handleOutsideClick = (event: MouseEvent) => {
             if (modalRef.current && !modalRef.current.contains(event.target as Node)) {
@@ -39,11 +38,11 @@ const ArchiveContentModal: React.FC<ArchiveContentModalProps> = ({ item, onClose
     }, [item.testo, searchTerm]);
 
     return (
-        <div className="fixed inset-0 z-[9999] bg-black/60 flex justify-center items-start pt-10 pb-10 px-4 animate-fadeIn">
-            <div ref={modalRef} className="bg-white rounded-xl shadow-2xl w-full max-w-4xl h-full flex flex-col relative">
+        <div className="fixed inset-0 z-[9999] bg-black/60 flex justify-center items-center p-4 animate-fadeIn">
+            <div ref={modalRef} className="bg-white rounded-xl shadow-2xl w-full max-w-4xl max-h-[90vh] flex flex-col relative overflow-hidden">
                 
                 {/* Header */}
-                <div className="p-6 border-b flex justify-between items-start bg-gray-50 rounded-t-xl shrink-0">
+                <div className="p-6 border-b flex justify-between items-start bg-gray-50 shrink-0">
                     <div className="flex-grow pr-8">
                         <h2 className="text-2xl font-bold text-[#04434E]">{item.titolo}</h2>
                         <div className="flex items-center gap-2 text-sm text-gray-500 mt-1">
@@ -70,13 +69,16 @@ const ArchiveContentModal: React.FC<ArchiveContentModalProps> = ({ item, onClose
                 </div>
 
                 {/* Scrollable Content */}
-                <div className="p-8 overflow-y-auto whitespace-pre-wrap text-gray-800 leading-relaxed text-lg flex-grow">
+                <div className="p-8 overflow-y-auto whitespace-pre-wrap text-gray-800 leading-relaxed text-lg min-h-0 flex-grow">
                     {highlightedContent}
                 </div>
 
                 {/* Footer */}
-                <div className="p-4 bg-gray-50 border-t text-right rounded-b-xl shrink-0">
-                    <button onClick={onClose} className="px-6 py-2 bg-[#04434E] text-white rounded-lg hover:bg-[#2D9C92] transition-colors font-semibold">
+                <div className="p-4 bg-gray-50 border-t flex justify-between items-center shrink-0">
+                    <a href={item.url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 px-4 py-2 bg-[#04434E] text-white rounded-lg hover:bg-[#2D9C92] transition-colors font-semibold">
+                        <ExternalLink size={16} /> Pagina Originale
+                    </a>
+                    <button onClick={onClose} className="px-6 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors font-semibold">
                         Chiudi
                     </button>
                 </div>

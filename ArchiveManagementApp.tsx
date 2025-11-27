@@ -22,7 +22,7 @@ const ArchiveManagementCard: React.FC<{
             const { signedUrl } = await res.json();
             
             // Load DB in memory to check stats
-            const db = await loadDatabase(signedUrl);
+            const db = await loadDatabase(signedUrl, filename);
             const meta = getDbMetadata(db);
             setMetadata(meta);
             db.close();
