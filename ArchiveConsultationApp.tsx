@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Search, Filter, Loader2, Database, ExternalLink, Copy, BookOpen, RotateCcw, ChevronLeft, ChevronRight, Layers } from 'lucide-react';
 import { loadDatabase, queryArchive, getDistinctValues, getAvailableYears, deduplicateResults } from './services/archiveService';
@@ -202,6 +201,18 @@ const ArchiveConsultationApp: React.FC = () => {
     const isLN = activeDbMode === 'archivio-LN.sqlite';
     const isCombined = activeDbMode === 'both';
 
+    const Pagination = () => (
+        <div className="flex justify-center gap-2">
+            <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1} className="p-2 rounded-md border bg-white disabled:opacity-50 hover:bg-gray-50">
+                <ChevronLeft />
+            </button>
+            <span className="flex items-center px-4 font-medium text-gray-700">Pagina {page} di {totalPages}</span>
+            <button onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page === totalPages} className="p-2 rounded-md border bg-white disabled:opacity-50 hover:bg-gray-50">
+                <ChevronRight />
+            </button>
+        </div>
+    );
+
     return (
         <div className="animate-fadeIn space-y-6 pb-12">
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
@@ -311,6 +322,7 @@ const ArchiveConsultationApp: React.FC = () => {
                     <div className="space-y-4">
                         <div className="flex justify-between items-center border-l-4 border-[#04434E] pl-3 py-1 bg-gray-50">
                             <p className="text-gray-700 font-medium">Trovati {allMergedResults.length} risultati. Pagina {page} di {totalPages || 1}</p>
+                            {totalPages > 1 && <Pagination />}
                         </div>
 
                         {displayedResults.map((item) => {
@@ -357,16 +369,10 @@ const ArchiveConsultationApp: React.FC = () => {
                         )}
                     </div>
 
-                    {/* Pagination */}
+                    {/* Pagination Bottom */}
                     {totalPages > 1 && (
-                        <div className="flex justify-center gap-2 mt-8">
-                            <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1} className="p-2 rounded-md border bg-white disabled:opacity-50 hover:bg-gray-50">
-                                <ChevronLeft />
-                            </button>
-                            <span className="flex items-center px-4 font-medium text-gray-700">Pagina {page} di {totalPages}</span>
-                            <button onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page === totalPages} className="p-2 rounded-md border bg-white disabled:opacity-50 hover:bg-gray-50">
-                                <ChevronRight />
-                            </button>
+                        <div className="mt-8">
+                             <Pagination />
                         </div>
                     )}
                 </div>

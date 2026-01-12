@@ -1,16 +1,15 @@
-
 {
   "private": true,
   "scripts": {
     "build": "esbuild index.tsx --bundle --outfile=bundle.js --jsx=automatic --loader:.ts=tsx"
   },
   "dependencies": {
-    "@google/genai": "^1.9.0",
     "@supabase/supabase-js": "^2.43.5",
     "lucide-react": "^0.400.0",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
-    "sql.js": "^1.10.3"
+    "sql.js": "^1.10.3",
+    "minisearch": "^7.1.0"
   },
   "devDependencies": {
     "@types/node": "^20.14.9",

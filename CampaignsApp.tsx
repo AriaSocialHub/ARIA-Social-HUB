@@ -5,6 +5,7 @@ import CampaignsHeader from './components/CampaignsHeader';
 import CampaignsList from './components/CampaignsList';
 import CampaignCalendar from './components/CampaignCalendar';
 import { useData } from './contexts/DataContext';
+import { Trash2 } from 'lucide-react';
 
 interface CampaignsAppProps {
   serviceId: string;
@@ -63,6 +64,15 @@ const CampaignsApp: React.FC<CampaignsAppProps> = ({ serviceId, isReadOnly, curr
         const action = isUpdate ? 'update' : 'add';
         saveServiceData(serviceId, newCampaigns, currentUser.name, action, campaign.title, campaign.id);
     };
+
+    const handleEmptyArchive = () => {
+        if (!currentUser) return;
+        if (window.confirm("Sei sicuro di voler svuotare l'intero archivio delle campagne terminate? L'azione è irreversibile.")) {
+            const todayStr = getTodayDateString();
+            const activeOnly = campaigns.filter(c => c.end >= todayStr);
+            saveServiceData(serviceId, activeOnly, currentUser.name, 'delete', "Svuotamento Archivio Campagne");
+        }
+    };
     
     const todayStr = useMemo(getTodayDateString, []);
 
@@ -93,13 +103,26 @@ const CampaignsApp: React.FC<CampaignsAppProps> = ({ serviceId, isReadOnly, curr
 
     const MainContent = () => (
         <div className="space-y-8">
-            <CampaignsList 
-                campaigns={campaignsToDisplay} 
-                isReadOnly={isReadOnly || view === 'archive'} 
-                isArchive={view === 'archive'}
-                onEdit={handleEdit} 
-                onDelete={handleDelete} 
-            />
+            <div className="flex flex-col gap-4">
+                {view === 'archive' && !isReadOnly && archivedCampaigns.length > 0 && (
+                    <div className="flex justify-end">
+                        <button 
+                            onClick={handleEmptyArchive}
+                            className="btn bg-red-600 text-white hover:bg-red-700 transition-colors flex items-center gap-2 text-sm"
+                        >
+                            <Trash2 size={16} />
+                            Svuota Archivio
+                        </button>
+                    </div>
+                )}
+                <CampaignsList 
+                    campaigns={campaignsToDisplay} 
+                    isReadOnly={isReadOnly || view === 'archive'} 
+                    isArchive={view === 'archive'}
+                    onEdit={handleEdit} 
+                    onDelete={handleDelete} 
+                />
+            </div>
             {view === 'dashboard' && (
                 <CampaignCalendar
                     campaigns={calendarCampaigns}
