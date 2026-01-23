@@ -71,7 +71,7 @@ const AvatarSetup: React.FC<AvatarSetupProps> = ({ onProfileCreated, user }) => 
                 </div>
                 <h1 className="text-3xl font-bold text-gray-900">Ogni giorno è una nuova avventura!</h1>
                 <div className="mt-2 space-y-1">
-                    <p className="text-base text-gray-600 max-w-2xl mx-auto whitespace-nowrap overflow-hidden text-ellipsis">
+                    <p className="text-sm md:text-base text-gray-600 max-w-2xl mx-auto whitespace-nowrap overflow-hidden">
                         Come da tradizione, gli avatar vengono resettati ogni mattina.
                     </p>
                     <p className="text-lg text-gray-600 max-w-lg mx-auto">
