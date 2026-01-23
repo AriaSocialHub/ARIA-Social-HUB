@@ -1,10 +1,7 @@
-
-
-
 import React, { useState, useMemo, useEffect } from 'react';
 import { User } from '../types';
 import { avatarList, getAvatar, getAvatarColor } from '../services/avatarRegistry';
-import { XCircle, Loader2, Sparkles } from 'lucide-react';
+import { XCircle, Loader2, Bot } from 'lucide-react';
 import { useData } from '../contexts/DataContext';
 
 interface AvatarSetupProps {
@@ -70,13 +67,17 @@ const AvatarSetup: React.FC<AvatarSetupProps> = ({ onProfileCreated, user }) => 
             
             <div className="text-center mb-8">
                 <div className="mx-auto h-16 w-16 rounded-full bg-gradient-to-br from-[var(--c-accent)] to-orange-600 flex items-center justify-center mb-4 text-white shadow-lg animate-bounce">
-                    <Sparkles size={32} />
+                    <Bot size={32} strokeWidth={2.5} />
                 </div>
                 <h1 className="text-3xl font-bold text-gray-900">Ogni giorno è una nuova avventura!</h1>
-                <p className="text-lg text-gray-600 mt-2 max-w-lg mx-auto">
-                    Come da tradizione, gli avatar vengono resettati ogni mattina.<br/>
-                    <span className="font-medium text-[var(--c-primary)]">Scegli il tuo personaggio per la giornata di oggi!</span>
-                </p>
+                <div className="mt-2 space-y-1">
+                    <p className="text-base text-gray-600 max-w-2xl mx-auto whitespace-nowrap overflow-hidden text-ellipsis">
+                        Come da tradizione, gli avatar vengono resettati ogni mattina.
+                    </p>
+                    <p className="text-lg text-gray-600 max-w-lg mx-auto">
+                        <span className="font-medium text-[var(--c-primary)]">Scegli il tuo personaggio per la giornata di oggi!</span>
+                    </p>
+                </div>
             </div>
             
             <form onSubmit={handleSubmit} noValidate>

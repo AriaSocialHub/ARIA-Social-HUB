@@ -398,7 +398,7 @@ const NewsArchiveApp: React.FC<NewsArchiveAppProps> = ({ serviceId, currentUser,
             )}
 
             {articleToDelete && (
-                <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4" onClick={() => setArticleToDelete(null)}>
+                <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-[10000] p-4" onClick={() => setArticleToDelete(null)}>
                     <div className="bg-white rounded-lg shadow-xl p-6 w-full max-w-sm text-center" onClick={e => e.stopPropagation()}>
                         <AlertTriangle size={48} className="text-red-500 mx-auto mb-4" />
                         <h2 className="text-xl font-bold text-gray-800 mb-2">Conferma Eliminazione</h2>
@@ -414,7 +414,7 @@ const NewsArchiveApp: React.FC<NewsArchiveAppProps> = ({ serviceId, currentUser,
             )}
             
             {bulkDeleteConfirm && (
-                <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4" onClick={() => setBulkDeleteConfirm(false)}>
+                <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-[10000] p-4" onClick={() => setBulkDeleteConfirm(false)}>
                     <div className="bg-white rounded-lg shadow-xl p-6 w-full max-w-sm text-center" onClick={e => e.stopPropagation()}>
                         <AlertTriangle size={48} className="text-red-500 mx-auto mb-4" />
                         <h2 className="text-xl font-bold text-gray-800 mb-2">Conferma Eliminazione</h2>
