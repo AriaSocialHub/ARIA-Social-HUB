@@ -1,12 +1,28 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { Search, Filter, Loader2, Database, ExternalLink, Copy, BookOpen, RotateCcw, ChevronLeft, ChevronRight, Layers } from 'lucide-react';
+import { Search, Filter, Loader2, Database, ExternalLink, Copy, BookOpen, RotateCcw, ChevronLeft, ChevronRight, Layers, Globe } from 'lucide-react';
 import { loadDatabase, queryArchive, getDistinctValues, getAvailableYears, deduplicateResults } from './services/archiveService';
 import { ArchiveItem } from './types';
 import ArchiveContentModal from './components/archive/ArchiveContentModal';
+import { useData } from './contexts/DataContext';
+import { serviceMap } from './services/registry';
+
+type DbMode = 'archivio.sqlite' | 'archivio-LN.sqlite' | 'both' | 'full_app';
+
+const INTERNAL_DOC_SERVICES = [
+    { id: 'tickets', label: 'Ticket Utili' },
+    { id: 'procedures', label: 'Procedure' },
+    { id: 'guidelines', label: 'Linee Guida' },
+    { id: 'sanita', label: 'Tematiche Sanitarie' },
+    { id: 'documentArchive', label: 'Falco Pellegrino' },
+    { id: 'vademecum', label: 'Vademecum' },
+    { id: 'belvedere', label: 'Belvedere' }
+];
 
 const ArchiveConsultationApp: React.FC = () => {
+    const { servicesData } = useData();
     // 'both' mode allows searching across RL and LN
-    const [activeDbMode, setActiveDbMode] = useState<'archivio.sqlite' | 'archivio-LN.sqlite' | 'both'>('archivio.sqlite');
+    // 'full_app' includes internal documents
+    const [activeDbMode, setActiveDbMode] = useState<DbMode>('archivio.sqlite');
     const [isLoadingDb, setIsLoadingDb] = useState(false);
     
     // DB Instances (cached in service, but we keep refs here to trigger updates)
@@ -17,7 +33,8 @@ const ArchiveConsultationApp: React.FC = () => {
         utenti: 'Tutti',
         macro_area: 'Tutte',
         argomento: 'Tutti',
-        sottocategoria: 'Tutte'
+        sottocategoria: 'Tutte',
+        internal_source: 'Tutte' // New filter for full_app mode
     });
     const [searchText, setSearchText] = useState('');
     const [searchScope, setSearchScope] = useState<'title' | 'content' | 'both'>('both');
@@ -43,29 +60,31 @@ const ArchiveConsultationApp: React.FC = () => {
     // Load Database(s) based on mode
     useEffect(() => {
         const init = async () => {
-            setIsLoadingDb(true);
+            const needsRL = ['archivio.sqlite', 'both', 'full_app'].includes(activeDbMode);
+            const needsLN = ['archivio-LN.sqlite', 'both', 'full_app'].includes(activeDbMode);
+
+            if ((needsRL && !dbInstances.RL) || (needsLN && !dbInstances.LN)) {
+                setIsLoadingDb(true);
+            }
+            
             try {
                 const newInstances = { ...dbInstances };
 
                 // Load RL if needed
-                if (activeDbMode === 'archivio.sqlite' || activeDbMode === 'both') {
-                    if (!newInstances.RL) {
-                        const res = await fetch(`/api/archiveStorage?filename=archivio.sqlite`);
-                        if (res.ok) {
-                            const { signedUrl } = await res.json();
-                            newInstances.RL = await loadDatabase(signedUrl, 'archivio.sqlite');
-                        }
+                if (needsRL && !newInstances.RL) {
+                    const res = await fetch(`/api/archiveStorage?filename=archivio.sqlite`);
+                    if (res.ok) {
+                        const { signedUrl } = await res.json();
+                        newInstances.RL = await loadDatabase(signedUrl, 'archivio.sqlite');
                     }
                 }
 
                 // Load LN if needed
-                if (activeDbMode === 'archivio-LN.sqlite' || activeDbMode === 'both') {
-                    if (!newInstances.LN) {
-                        const res = await fetch(`/api/archiveStorage?filename=archivio-LN.sqlite`);
-                        if (res.ok) {
-                            const { signedUrl } = await res.json();
-                            newInstances.LN = await loadDatabase(signedUrl, 'archivio-LN.sqlite');
-                        }
+                if (needsLN && !newInstances.LN) {
+                    const res = await fetch(`/api/archiveStorage?filename=archivio-LN.sqlite`);
+                    if (res.ok) {
+                        const { signedUrl } = await res.json();
+                        newInstances.LN = await loadDatabase(signedUrl, 'archivio-LN.sqlite');
                     }
                 }
 
@@ -83,9 +102,9 @@ const ArchiveConsultationApp: React.FC = () => {
     // Update Filter Options
     useEffect(() => {
         const { RL, LN } = dbInstances;
-        const currentDb = activeDbMode === 'archivio.sqlite' ? RL : (activeDbMode === 'archivio-LN.sqlite' ? LN : null);
+        const currentDb = activeDbMode === 'archivio-LN.sqlite' ? LN : RL;
 
-        if (activeDbMode === 'both') {
+        if (activeDbMode === 'both' || activeDbMode === 'full_app') {
             const usersRL = RL ? getDistinctValues(RL, 'Utenti') : [];
             const macroRL = RL ? getDistinctValues(RL, 'Macro-area') : [];
             const macroLN = LN ? getDistinctValues(LN, 'Macro-area') : [];
@@ -117,10 +136,11 @@ const ArchiveConsultationApp: React.FC = () => {
     const runQuery = useCallback(() => {
         try {
             const { RL, LN } = dbInstances;
-            if (!RL && !LN) return;
+            if (!RL && !LN && activeDbMode !== 'full_app') return;
 
             let resultsRL: ArchiveItem[] = [];
             let resultsLN: ArchiveItem[] = [];
+            let resultsInternal: ArchiveItem[] = [];
 
             const commonParams = {
                 search: searchText,
@@ -129,28 +149,76 @@ const ArchiveConsultationApp: React.FC = () => {
                 filters
             };
 
-            if ((activeDbMode === 'archivio.sqlite' || activeDbMode === 'both') && RL) {
+            // 1. SQL Archives
+            if (['archivio.sqlite', 'both', 'full_app'].includes(activeDbMode) && RL) {
                 resultsRL = queryArchive(RL, commonParams, 'RL');
             }
 
-            if ((activeDbMode === 'archivio-LN.sqlite' || activeDbMode === 'both') && LN) {
+            if (['archivio-LN.sqlite', 'both', 'full_app'].includes(activeDbMode) && LN) {
                 resultsLN = queryArchive(LN, commonParams, 'LN');
             }
 
+            // 2. Internal Documentation (only in full_app mode)
+            if (activeDbMode === 'full_app') {
+                const term = searchText.toLowerCase();
+                INTERNAL_DOC_SERVICES.forEach(service => {
+                    // Check if filter allows this service
+                    if (filters.internal_source !== 'Tutte' && filters.internal_source !== service.id) return;
+
+                    const serviceData = servicesData[service.id];
+                    if (!serviceData || !serviceData.data) return;
+
+                    Object.entries(serviceData.data as Record<string, any[]>).forEach(([category, items]) => {
+                        items.forEach(item => {
+                            // Map heterogeneous data to ArchiveItem format
+                            // Procedures/Guidelines/Sanità use casistica/comeAgire
+                            // Tickets use richiesta/risoluzione
+                            const title = item.titolo || item.casistica || item.richiesta || '';
+                            const content = item.testo || item.comeAgire || item.risoluzione || '';
+                            const date = item.data_ultimo_aggiornamento_informazioni || item.dataInserimento || item.data || '';
+
+                            const matchesSearch = !term || 
+                                (searchScope === 'title' && title.toLowerCase().includes(term)) ||
+                                (searchScope === 'content' && content.toLowerCase().includes(term)) ||
+                                (searchScope === 'both' && (title.toLowerCase().includes(term) || content.toLowerCase().includes(term)));
+
+                            if (matchesSearch) {
+                                resultsInternal.push({
+                                    id: item.id as any,
+                                    url: item.url || '#',
+                                    utenti: item.utenti || '',
+                                    macro_area: category,
+                                    argomento: item.argomento || '',
+                                    sottocategoria: item.sottocategoria || '',
+                                    titolo: title,
+                                    testo: content,
+                                    data_ultimo_aggiornamento_informazioni: date,
+                                    data_aggiornamento: date,
+                                    source: service.label as any // Use the human label for the badge
+                                });
+                            }
+                        });
+                    });
+                });
+            }
+
             // Merge
-            let combined = [...resultsRL, ...resultsLN];
+            let combined = [...resultsRL, ...resultsLN, ...resultsInternal];
 
             // Deduplicate
             combined = deduplicateResults(combined);
 
             // Sort by date desc
             combined.sort((a, b) => {
-                // Helper to parse Italian date for sorting
                 const parseIt = (d: string) => {
                     if (!d) return 0;
                     try {
+                        // Handle DD/MM/YYYY
                         const parts = d.split('/');
                         if (parts.length === 3) return new Date(`${parts[2]}-${parts[1]}-${parts[0]}`).getTime();
+                        // Handle ISO
+                        const iso = new Date(d).getTime();
+                        if (!isNaN(iso)) return iso;
                     } catch (e) {
                         return 0;
                     }
@@ -163,10 +231,9 @@ const ArchiveConsultationApp: React.FC = () => {
             setPage(1); // Reset to page 1 on new search
         } catch (error) {
             console.error("Error processing query results:", error);
-            // Fail gracefully
             setAllMergedResults([]);
         }
-    }, [dbInstances, activeDbMode, searchText, searchScope, selectedYears, filters]);
+    }, [dbInstances, activeDbMode, searchText, searchScope, selectedYears, filters, servicesData]);
 
     // Trigger query on dependency change
     useEffect(() => {
@@ -185,7 +252,7 @@ const ArchiveConsultationApp: React.FC = () => {
 
     // Handlers
     const handleReset = () => {
-        setFilters({ utenti: 'Tutti', macro_area: 'Tutte', argomento: 'Tutti', sottocategoria: 'Tutte' });
+        setFilters({ utenti: 'Tutti', macro_area: 'Tutte', argomento: 'Tutti', sottocategoria: 'Tutte', internal_source: 'Tutte' });
         setSearchText('');
         setSearchScope('both');
         setSelectedYears([]);
@@ -199,15 +266,15 @@ const ArchiveConsultationApp: React.FC = () => {
 
     const totalPages = Math.ceil(allMergedResults.length / pageSize);
     const isLN = activeDbMode === 'archivio-LN.sqlite';
-    const isCombined = activeDbMode === 'both';
+    const isCombined = activeDbMode === 'both' || activeDbMode === 'full_app';
 
     const Pagination = () => (
         <div className="flex justify-center gap-2">
             <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1} className="p-2 rounded-md border bg-white disabled:opacity-50 hover:bg-gray-50">
                 <ChevronLeft />
             </button>
-            <span className="flex items-center px-4 font-medium text-gray-700">Pagina {page} di {totalPages}</span>
-            <button onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page === totalPages} className="p-2 rounded-md border bg-white disabled:opacity-50 hover:bg-gray-50">
+            <span className="flex items-center px-4 font-medium text-gray-700">Pagina {page} di {totalPages || 1}</span>
+            <button onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page === totalPages || totalPages === 0} className="p-2 rounded-md border bg-white disabled:opacity-50 hover:bg-gray-50">
                 <ChevronRight />
             </button>
         </div>
@@ -218,7 +285,7 @@ const ArchiveConsultationApp: React.FC = () => {
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                 <div>
                     <h1 className="text-2xl font-bold text-[#04434E]">Consultazione Archivi</h1>
-                    <p className="text-gray-600 mt-1">Naviga tra le informazioni del Sito RL e Lombardia Notizie.</p>
+                    <p className="text-gray-600 mt-1">Naviga tra le informazioni del Sito RL, Lombardia Notizie e la documentazione dell'app.</p>
                 </div>
             </div>
 
@@ -231,7 +298,10 @@ const ArchiveConsultationApp: React.FC = () => {
                     <Database size={20} /> Portale Lombardia Notizie
                 </button>
                 <button onClick={() => { setActiveDbMode('both'); handleReset(); }} className={`flex items-center gap-2 px-5 py-3 rounded-lg font-semibold transition-all ${activeDbMode === 'both' ? 'bg-[#04434E] text-white shadow-md scale-105 ring-2 ring-[#04434E] ring-offset-2' : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-50'}`}>
-                    <Layers size={20} /> Entrambi (Ricerca Globale)
+                    <Layers size={20} /> Entrambi (RL+LN)
+                </button>
+                <button onClick={() => { setActiveDbMode('full_app'); handleReset(); }} className={`flex items-center gap-2 px-5 py-3 rounded-lg font-semibold transition-all ${activeDbMode === 'full_app' ? 'bg-[#3b82f6] text-white shadow-md scale-105 ring-2 ring-[#3b82f6] ring-offset-2' : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-50'}`}>
+                    <Globe size={20} /> Intera App (Globale)
                 </button>
             </div>
 
@@ -255,10 +325,17 @@ const ArchiveConsultationApp: React.FC = () => {
                         </div>
 
                         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                            {!isLN && (
+                            {!isLN && activeDbMode !== 'full_app' && (
                                 <select className="form-input" value={filters.utenti} onChange={e => { setFilters(p => ({...p, utenti: e.target.value, macro_area: 'Tutte', argomento: 'Tutti'})); }}>
                                     <option value="Tutti">Utenti (Tutti)</option>
                                     {options.utenti.map(o => <option key={o} value={o}>{o}</option>)}
+                                </select>
+                            )}
+
+                            {activeDbMode === 'full_app' && (
+                                <select className="form-input" value={filters.internal_source} onChange={e => setFilters(p => ({...p, internal_source: e.target.value}))}>
+                                    <option value="Tutte">Documentazione (Tutte)</option>
+                                    {INTERNAL_DOC_SERVICES.map(s => <option key={s.id} value={s.id}>{s.label}</option>)}
                                 </select>
                             )}
                             
@@ -267,7 +344,7 @@ const ArchiveConsultationApp: React.FC = () => {
                                 {options.macro_area.map(o => <option key={o} value={o}>{o}</option>)}
                             </select>
 
-                            {!isLN && (
+                            {!isLN && activeDbMode !== 'full_app' && (
                                 <>
                                     <select className="form-input" value={filters.argomento} onChange={e => { setFilters(p => ({...p, argomento: e.target.value})); }} disabled={options.argomento.length === 0}>
                                         <option value="Tutti">Argomento (Tutti)</option>
@@ -327,16 +404,28 @@ const ArchiveConsultationApp: React.FC = () => {
 
                         {displayedResults.map((item) => {
                             const isLNItem = item.source === 'LN';
-                            const borderClass = isLNItem ? 'border-[#2D9C92] hover:border-[#2D9C92]' : 'border-[#04434E] hover:border-[#04434E]';
-                            const badgeBg = isLNItem ? 'bg-[#2D9C92]' : 'bg-[#04434E]';
-                            const buttonClass = isLNItem 
-                                ? 'bg-[#2D9C92] text-white hover:bg-[#20756d]' 
-                                : 'bg-[#04434E] text-white hover:bg-[#2D9C92]';
+                            const isRLItem = item.source === 'RL';
+                            const isInternal = !isRLItem && !isLNItem;
+                            
+                            let borderClass = 'border-[#04434E]';
+                            let badgeBg = 'bg-[#04434E]';
+                            let buttonClass = 'bg-[#04434E] text-white hover:bg-[#2D9C92]';
+                            let sourceLabel = isRLItem ? 'Portale Regione Lombardia' : (isLNItem ? 'Portale Lombardia Notizie' : (item.source as any));
+
+                            if (isLNItem) {
+                                borderClass = 'border-[#2D9C92] hover:border-[#2D9C92]';
+                                badgeBg = 'bg-[#2D9C92]';
+                                buttonClass = 'bg-[#2D9C92] text-white hover:bg-[#20756d]';
+                            } else if (isInternal) {
+                                borderClass = 'border-[#3b82f6] hover:border-[#3b82f6]';
+                                badgeBg = 'bg-[#3b82f6]';
+                                buttonClass = 'bg-[#3b82f6] text-white hover:bg-[#2563eb]';
+                            }
 
                             return (
                                 <div key={item.id} className={`bg-white p-6 rounded-xl border shadow-sm hover:shadow-md transition-all relative overflow-hidden ${borderClass} border`}>
                                     <div className={`absolute top-0 left-0 text-white text-[10px] font-bold px-3 py-1 rounded-br-lg ${badgeBg}`}>
-                                        {isLNItem ? 'Portale Lombardia Notizie' : 'Portale Regione Lombardia'}
+                                        {sourceLabel}
                                     </div>
                                     <h3 className="text-xl font-bold text-gray-900 mb-2 mt-2">{item.titolo}</h3>
                                     <div className="text-xs text-gray-500 mb-4 flex flex-wrap gap-x-4 gap-y-1">
@@ -347,15 +436,19 @@ const ArchiveConsultationApp: React.FC = () => {
                                     </div>
                                     <p className="text-gray-600 mb-6 line-clamp-3">{item.testo}</p>
                                     <div className="flex flex-wrap gap-3">
-                                        <a href={item.url} target="_blank" rel="noopener noreferrer" className={`flex items-center gap-2 px-4 py-2 rounded-md font-semibold transition-colors ${buttonClass}`}>
-                                            <ExternalLink size={16} /> Pagina Originale
-                                        </a>
+                                        {item.url && item.url !== '#' && (
+                                            <a href={item.url} target="_blank" rel="noopener noreferrer" className={`flex items-center gap-2 px-4 py-2 rounded-md font-semibold transition-colors ${buttonClass}`}>
+                                                <ExternalLink size={16} /> Pagina Originale
+                                            </a>
+                                        )}
                                         <button onClick={() => setSelectedItem(item)} className={`flex items-center gap-2 px-4 py-2 rounded-md font-semibold transition-colors ${buttonClass}`}>
                                             <BookOpen size={16} /> Leggi Contenuto
                                         </button>
-                                        <button onClick={() => {navigator.clipboard.writeText(item.url); alert('URL Copiato!')}} className={`flex items-center gap-2 px-4 py-2 rounded-md font-semibold transition-colors ${buttonClass}`}>
-                                            <Copy size={16} /> Copia URL
-                                        </button>
+                                        {item.url && item.url !== '#' && (
+                                            <button onClick={() => {navigator.clipboard.writeText(item.url); alert('URL Copiato!')}} className={`flex items-center gap-2 px-4 py-2 rounded-md font-semibold transition-colors ${buttonClass}`}>
+                                                <Copy size={16} /> Copia URL
+                                            </button>
+                                        )}
                                     </div>
                                 </div>
                             );
