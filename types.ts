@@ -1,4 +1,3 @@
-
 import React from 'react';
 
 export interface Service<T> {
@@ -230,7 +229,8 @@ export interface ArchiveItem {
   testo: string;
   data_ultimo_aggiornamento_informazioni: string;
   data_aggiornamento: string;
-  source?: 'RL' | 'LN';
+  source?: 'RL' | 'LN' | string;
+  internal_service_id?: string;
 }
 
 // --- DB structure ---
