@@ -169,10 +169,11 @@ const ArchiveConsultationApp: React.FC = () => {
                     if (!serviceData || !serviceData.data) return;
 
                     Object.entries(serviceData.data as Record<string, any[]>).forEach(([category, items]) => {
+                        // Apply Macro-area filter to internal documents if set
+                        if (filters.macro_area !== 'Tutte' && category !== filters.macro_area) return;
+
                         items.forEach(item => {
                             // Map heterogeneous data to ArchiveItem format
-                            // Procedures/Guidelines/Sanità use casistica/comeAgire
-                            // Tickets use richiesta/risoluzione
                             const title = item.titolo || item.casistica || item.richiesta || '';
                             const content = item.testo || item.comeAgire || item.risoluzione || '';
                             const date = item.data_ultimo_aggiornamento_informazioni || item.dataInserimento || item.data || '';
@@ -324,18 +325,18 @@ const ArchiveConsultationApp: React.FC = () => {
                             </button>
                         </div>
 
-                        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                            {!isLN && activeDbMode !== 'full_app' && (
-                                <select className="form-input" value={filters.utenti} onChange={e => { setFilters(p => ({...p, utenti: e.target.value, macro_area: 'Tutte', argomento: 'Tutti'})); }}>
-                                    <option value="Tutti">Utenti (Tutti)</option>
-                                    {options.utenti.map(o => <option key={o} value={o}>{o}</option>)}
-                                </select>
-                            )}
-
+                        <div className={`grid grid-cols-1 ${activeDbMode === 'full_app' ? 'md:grid-cols-5' : 'md:grid-cols-4'} gap-4`}>
                             {activeDbMode === 'full_app' && (
                                 <select className="form-input" value={filters.internal_source} onChange={e => setFilters(p => ({...p, internal_source: e.target.value}))}>
                                     <option value="Tutte">Documentazione (Tutte)</option>
                                     {INTERNAL_DOC_SERVICES.map(s => <option key={s.id} value={s.id}>{s.label}</option>)}
+                                </select>
+                            )}
+
+                            {!isLN && (
+                                <select className="form-input" value={filters.utenti} onChange={e => { setFilters(p => ({...p, utenti: e.target.value, macro_area: 'Tutte', argomento: 'Tutti'})); }}>
+                                    <option value="Tutti">Utenti (Tutti)</option>
+                                    {options.utenti.map(o => <option key={o} value={o}>{o}</option>)}
                                 </select>
                             )}
                             
@@ -344,7 +345,7 @@ const ArchiveConsultationApp: React.FC = () => {
                                 {options.macro_area.map(o => <option key={o} value={o}>{o}</option>)}
                             </select>
 
-                            {!isLN && activeDbMode !== 'full_app' && (
+                            {!isLN && (
                                 <>
                                     <select className="form-input" value={filters.argomento} onChange={e => { setFilters(p => ({...p, argomento: e.target.value})); }} disabled={options.argomento.length === 0}>
                                         <option value="Tutti">Argomento (Tutti)</option>
